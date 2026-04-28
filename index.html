@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>แบบฟอร์มลงทะเบียน</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    padding: 40px;
+    width: 100%;
+    max-width: 480px;
+  }
+  h1 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 24px;
+  }
+  .subtitle {
+    color: #777;
+    margin-bottom: 24px;
+    font-size: 14px;
+  }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .progress-step {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    transition: background 0.3s;
+  }
+  .progress-step.active { background: linear-gradient(90deg, #667eea, #764ba2); }
+  .progress-text {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 12px;
+    text-align: right;
+  }
+
+  .step { display: none; animation: slideIn 0.3s ease-out; }
+  .step.active { display: block; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .step-question {
+    font-size: 20px;
+    color: #1f2937;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .step-hint {
+    color: #6b7280;
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+    font-family: inherit;
+    background: #fff;
+  }
+  input:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+  input[readonly] { cursor: pointer; background: #fafbfc; }
+
+  .age-display {
+    margin-top: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f0f9ff, #e0e7ff);
+    border-radius: 8px;
+    text-align: center;
+    color: #4338ca;
+    font-weight: 600;
+    display: none;
+  }
+  .age-display.show { display: block; animation: fadeIn 0.3s; }
+  .age-number { font-size: 28px; color: #4f46e5; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .error {
+    color: #e53935;
+    font-size: 13px;
+    margin-top: 6px;
+    min-height: 18px;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 28px;
+  }
+  button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary {
+    background: #f0f0f0;
+    color: #444;
+  }
+  button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
+  .report-link {
+    display: block;
+    text-align: center;
+    margin-top: 18px;
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .report-link:hover { text-decoration: underline; }
+
+  .success { text-align: center; padding: 20px 0; }
+  .success-icon {
+    width: 72px; height: 72px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: #10b981;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+  }
+  .success h2 { color: #1f2937; margin-bottom: 8px; }
+  .success p { color: #6b7280; margin-bottom: 24px; }
+  .summary {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { color: #6b7280; }
+  .summary-value { color: #1f2937; font-weight: 500; }
+
+  .toast {
+    position: fixed;
+    top: 20px; right: 20px;
+    background: #4caf50;
+    color: #fff;
+    padding: 14px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transform: translateX(150%);
+    transition: transform 0.3s;
+    z-index: 100;
+  }
+  .toast.show { transform: translateX(0); }
+
+  /* Flatpickr customization */
+  .flatpickr-calendar { font-family: inherit; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>แบบฟอร์มลงทะเบียน</h1>
+    <p class="subtitle">กรุณากรอกข้อมูลทีละขั้นตอน</p>
+
+    <div class="progress-text" id="progressText">ขั้นตอนที่ 1 จาก 4</div>
+    <div class="progress">
+      <div class="progress-step active" data-step="1"></div>
+      <div class="progress-step" data-step="2"></div>
+      <div class="progress-step" data-step="3"></div>
+      <div class="progress-step" data-step="4"></div>
+    </div>
+
+    <form id="regForm" novalidate>
+      <!-- Step 1: Date of Birth -->
+      <div class="step active" data-step="1">
+        <div class="step-question">วันเกิดของคุณ?</div>
+        <div class="step-hint">เลือกวันเกิดเพื่อคำนวณอายุของคุณ</div>
+        <input type="text" id="dob" name="dob" placeholder="คลิกเพื่อเลือกวันเกิด" readonly />
+        <div class="error" id="err-dob"></div>
+        <div class="age-display" id="ageDisplay">
+          อายุของคุณคือ <span class="age-number" id="ageNumber">0</span> ปี
+        </div>
+        <div class="btn-row">
+          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Name -->
+      <div class="step" data-step="2">
+        <div class="step-question">คุณชื่ออะไร?</div>
+        <div class="step-hint">กรุณากรอกชื่อ-นามสกุลของคุณ</div>
+        <input type="text" id="name" name="name" placeholder="เช่น สมชาย ใจดี" autocomplete="name" />
+        <div class="error" id="err-name"></div>
+        <div class="btn-row">
+          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
+          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Email -->
+      <div class="step" data-step="3">
+        <div class="step-question">อีเมลของคุณคือ?</div>
+        <div class="step-hint">เราจะใช้อีเมลนี้ในการติดต่อกลับ</div>
+        <input type="email" id="email" name="email" placeholder="example@email.com" autocomplete="email" />
+        <div class="error" id="err-email"></div>
+        <div class="btn-row">
+          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
+          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Phone -->
+      <div class="step" data-step="4">
+        <div class="step-question">เบอร์โทรศัพท์ของคุณ?</div>
+        <div class="step-hint">เพื่อการติดต่อสื่อสารที่รวดเร็ว</div>
+        <input type="tel" id="phone" name="phone" placeholder="08X-XXX-XXXX" autocomplete="tel" />
+        <div class="error" id="err-phone"></div>
+        <div class="btn-row">
+          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
+          <button type="submit" class="btn-primary">ลงทะเบียน ✓</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Success -->
+      <div class="step" data-step="5">
+        <div class="success">
+          <div class="success-icon">✓</div>
+          <h2>ลงทะเบียนสำเร็จ!</h2>
+          <p>ขอบคุณที่ลงทะเบียนกับเรา</p>
+          <div class="summary" id="summary"></div>
+          <div class="btn-row">
+            <button type="button" class="btn-secondary" data-action="restart">ลงทะเบียนใหม่</button>
+            <a href="report.html" style="flex:1;text-decoration:none;">
+              <button type="button" class="btn-primary" style="width:100%;">ดูรายงาน</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <a href="report.html" class="report-link" id="reportLink">ดูรายชื่อผู้ลงทะเบียนทั้งหมด →</a>
+  </div>
+
+  <div class="toast" id="toast">บันทึกข้อมูลเรียบร้อย</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
+<script>
+  const API_BASE = '/api';
+  const form = document.getElementById('regForm');
+  const toast = document.getElementById('toast');
+  const progressText = document.getElementById('progressText');
+  const progressSteps = document.querySelectorAll('.progress-step');
+  const reportLink = document.getElementById('reportLink');
+  const ageDisplay = document.getElementById('ageDisplay');
+  const ageNumber = document.getElementById('ageNumber');
+
+  let currentStep = 1;
+  const TOTAL_STEPS = 4;
+  let selectedDob = null;
+
+  // Initialize flatpickr (popular, lightweight, mobile-friendly date picker)
+  const today = new Date();
+  const maxDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+  const minDate = new Date(today.getFullYear() - 120, 0, 1);
+
+  const fp = flatpickr('#dob', {
+    locale: 'th',
+    dateFormat: 'd M Y',
+    maxDate: maxDate,
+    minDate: minDate,
+    defaultDate: new Date(today.getFullYear() - 25, 0, 1),
+    disableMobile: false,
+    onChange: function(dates) {
+      if (dates.length === 0) return;
+      selectedDob = dates[0];
+      const age = calculateAge(selectedDob);
+      ageNumber.textContent = age;
+      ageDisplay.classList.add('show');
+      showError('dob', '');
+      document.getElementById('dob').style.borderColor = '#10b981';
+    }
+  });
+
+  function calculateAge(birthDate) {
+    const now = new Date();
+    let age = now.getFullYear() - birthDate.getFullYear();
+    const m = now.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
+    return age;
+  }
+
+  function fmtDob(date) {
+    return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function showError(field, msg) {
+    document.getElementById('err-' + field).textContent = msg;
+  }
+  function setBorder(field, color) {
+    form[field].style.borderColor = color || '';
+  }
+  function showToast(msg, color) {
+    toast.textContent = msg;
+    toast.style.background = color || '#4caf50';
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+  function normalizePhone(p) {
+    return p.replace(/[\s\-+()]/g, '');
+  }
+
+  // Debounced async duplicate check via API
+  let checkTimer = null;
+  async function checkDuplicate(field, value) {
+    try {
+      const url = new URL(API_BASE + '/check', window.location.origin);
+      url.searchParams.set(field, value);
+      const res = await fetch(url);
+      if (!res.ok) return false;
+      const data = await res.json();
+      return field === 'email' ? data.emailExists : data.phoneExists;
+    } catch (err) {
+      console.error('check failed', err);
+      return false;
+    }
+  }
+  function debouncedCheck(field, value, onResult) {
+    clearTimeout(checkTimer);
+    checkTimer = setTimeout(async () => {
+      const dup = await checkDuplicate(field, value);
+      onResult(dup);
+    }, 350);
+  }
+
+  function gotoStep(n) {
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
+    currentStep = n;
+
+    if (n <= TOTAL_STEPS) {
+      progressText.textContent = `ขั้นตอนที่ ${n} จาก ${TOTAL_STEPS}`;
+      progressText.style.display = '';
+      document.querySelector('.progress').style.display = '';
+      progressSteps.forEach(el => {
+        const s = Number(el.dataset.step);
+        el.classList.toggle('active', s <= n);
+      });
+      reportLink.style.display = '';
+      const input = document.querySelector(`.step[data-step="${n}"] input:not([readonly])`);
+      if (input) setTimeout(() => input.focus(), 100);
+    } else {
+      progressText.style.display = 'none';
+      document.querySelector('.progress').style.display = 'none';
+      reportLink.style.display = 'none';
+    }
+  }
+
+  async function validateStep(n) {
+    if (n === 1) {
+      if (!selectedDob) {
+        showError('dob', 'กรุณาเลือกวันเกิด');
+        setBorder('dob', '#ef4444');
+        return false;
+      }
+      const age = calculateAge(selectedDob);
+      if (age < 1 || age > 120) {
+        showError('dob', 'อายุไม่ถูกต้อง');
+        setBorder('dob', '#ef4444');
+        return false;
+      }
+      showError('dob', ''); setBorder('dob', '#10b981');
+      return true;
+    }
+    if (n === 2) {
+      const v = form.name.value.trim();
+      if (!v) { showError('name', 'กรุณากรอกชื่อ'); setBorder('name', '#ef4444'); return false; }
+      showError('name', ''); setBorder('name', '#10b981');
+      return true;
+    }
+    if (n === 3) {
+      const v = form.email.value.trim();
+      if (!v) { showError('email', 'กรุณากรอกอีเมล'); setBorder('email', '#ef4444'); return false; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+        showError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); setBorder('email', '#ef4444'); return false;
+      }
+      const dup = await checkDuplicate('email', v);
+      if (dup) {
+        showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); return false;
+      }
+      showError('email', ''); setBorder('email', '#10b981');
+      return true;
+    }
+    if (n === 4) {
+      const v = form.phone.value.trim();
+      if (!v) { showError('phone', 'กรุณากรอกเบอร์โทร'); setBorder('phone', '#ef4444'); return false; }
+      if (!/^[0-9\-+\s()]{9,15}$/.test(v)) {
+        showError('phone', 'เบอร์โทรไม่ถูกต้อง'); setBorder('phone', '#ef4444'); return false;
+      }
+      const dup = await checkDuplicate('phone', v);
+      if (dup) {
+        showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); return false;
+      }
+      showError('phone', ''); setBorder('phone', '#10b981');
+      return true;
+    }
+    return true;
+  }
+
+  // Realtime feedback on email/phone (debounced API check)
+  form.email.addEventListener('input', () => {
+    const v = form.email.value.trim();
+    if (!v) { showError('email', ''); setBorder('email', ''); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return;
+    debouncedCheck('email', v, (dup) => {
+      if (form.email.value.trim() !== v) return;
+      if (dup) { showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); }
+      else { showError('email', ''); setBorder('email', '#10b981'); }
+    });
+  });
+  form.phone.addEventListener('input', () => {
+    const v = form.phone.value.trim();
+    if (!v) { showError('phone', ''); setBorder('phone', ''); return; }
+    if (!/^[0-9\-+\s()]{9,15}$/.test(v)) return;
+    debouncedCheck('phone', v, (dup) => {
+      if (form.phone.value.trim() !== v) return;
+      if (dup) { showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); }
+      else { showError('phone', ''); setBorder('phone', '#10b981'); }
+    });
+  });
+  form.name.addEventListener('input', () => {
+    if (form.name.value.trim()) { showError('name', ''); setBorder('name', ''); }
+  });
+
+  // Button handlers
+  form.addEventListener('click', async (e) => {
+    const action = e.target.dataset.action;
+    if (action === 'next') {
+      e.target.disabled = true;
+      const ok = await validateStep(currentStep);
+      e.target.disabled = false;
+      if (ok) gotoStep(currentStep + 1);
+    } else if (action === 'prev') {
+      gotoStep(currentStep - 1);
+    } else if (action === 'restart') {
+      form.reset();
+      fp.clear();
+      selectedDob = null;
+      ageDisplay.classList.remove('show');
+      ['dob','name','email','phone'].forEach(f => { showError(f, ''); setBorder(f, ''); });
+      gotoStep(1);
+    }
+  });
+
+  // Enter key advances
+  form.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter' && currentStep < TOTAL_STEPS) {
+      e.preventDefault();
+      if (await validateStep(currentStep)) gotoStep(currentStep + 1);
+    }
+  });
+
+  // Final submit — POST to API
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    for (let s = 1; s <= TOTAL_STEPS; s++) {
+      if (!(await validateStep(s))) { gotoStep(s); return; }
+    }
+
+    const submitBtn = form.querySelector('[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'กำลังบันทึก...';
+
+    const payload = {
+      dob: selectedDob.toISOString(),
+      age: calculateAge(selectedDob),
+      name: form.name.value.trim(),
+      email: form.email.value.trim(),
+      phone: form.phone.value.trim(),
+    };
+
+    try {
+      const res = await fetch(API_BASE + '/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.status === 201) {
+        document.getElementById('summary').innerHTML = `
+          <div class="summary-row"><span class="summary-label">วันเกิด</span><span class="summary-value">${fmtDob(selectedDob)}</span></div>
+          <div class="summary-row"><span class="summary-label">อายุ</span><span class="summary-value">${payload.age} ปี</span></div>
+          <div class="summary-row"><span class="summary-label">ชื่อ</span><span class="summary-value">${payload.name}</span></div>
+          <div class="summary-row"><span class="summary-label">อีเมล</span><span class="summary-value">${payload.email}</span></div>
+          <div class="summary-row"><span class="summary-label">เบอร์โทร</span><span class="summary-value">${payload.phone}</span></div>
+        `;
+        showToast('ลงทะเบียนสำเร็จ ✓');
+        gotoStep(5);
+      } else if (res.status === 409) {
+        const data = await res.json();
+        const field = data.field;
+        showError(field, '⚠ ' + (data.message || 'ข้อมูลซ้ำ'));
+        setBorder(field, '#ef4444');
+        gotoStep(field === 'email' ? 3 : 4);
+        showToast('ไม่สามารถลงทะเบียนซ้ำได้', '#ef4444');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.message || 'เกิดข้อผิดพลาด', '#ef4444');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์', '#ef4444');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  });
+
+  gotoStep(1);
+</script>
+</body>
+</html>
