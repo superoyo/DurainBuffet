@@ -10,7 +10,9 @@
     --primary: #f59e0b;
     --primary-dark: #d97706;
     --accent: #10b981;
+    --info: #3b82f6;
     --danger: #ef4444;
+    --warning: #f59e0b;
     --text: #1f2937;
     --muted: #6b7280;
     --border: #e5e7eb;
@@ -64,24 +66,27 @@
   /* Form fields */
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .field input {
+  .field input, .field textarea {
     width: 100%; padding: 12px 14px;
     border: 2px solid var(--border); border-radius: 10px;
     font-size: 15px; font-family: inherit;
   }
-  .field input:focus { outline: none; border-color: var(--primary); }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--primary); }
 
   .btn {
-    padding: 12px 16px; border: none; border-radius: 10px;
-    font-size: 14px; font-weight: 600; font-family: inherit;
+    padding: 10px 14px; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; font-family: inherit;
     cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
   }
   .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; }
   .btn-primary:hover { background: var(--primary-dark); }
   .btn-accent { background: var(--accent); color: #fff; }
   .btn-accent:hover { filter: brightness(0.95); }
-  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-info   { background: var(--info); color: #fff; }
+  .btn-ghost  { background: transparent; color: var(--muted); border: 1px solid var(--border); }
   .btn-danger { background: #fee2e2; color: var(--danger); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .alert { padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 12px; }
   .alert.error { background: #fee2e2; color: #991b1b; }
@@ -98,14 +103,20 @@
   }
   .day-header {
     display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
   }
   .day-title { font-size: 16px; font-weight: 700; }
   .day-summary { font-size: 12px; color: var(--muted); }
+  .pending-pill {
+    background: #fef3c7; color: #92400e;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    margin-left: 6px;
+  }
 
   .slot-row {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
     gap: 8px;
   }
   .slot-tile {
@@ -113,10 +124,12 @@
     padding: 10px 12px; cursor: pointer; background: #fff;
     transition: all 0.15s;
     display: flex; flex-direction: column; gap: 2px;
+    position: relative;
   }
   .slot-tile:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
   .slot-tile.full { background: #fef2f2; border-color: #fecaca; }
   .slot-tile.empty { opacity: 0.6; }
+  .slot-tile.has-pending { border-color: #fbbf24; background: #fffbeb; }
   .slot-tile-time { font-weight: 700; font-size: 14px; }
   .slot-tile-meta { font-size: 11px; color: var(--muted); }
   .slot-tile-bar {
@@ -124,6 +137,12 @@
     margin-top: 4px; overflow: hidden;
   }
   .slot-tile-bar-fill { height: 100%; background: var(--primary); }
+  .slot-tile-pending {
+    position: absolute; top: 6px; right: 6px;
+    background: #f59e0b; color: #fff;
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 999px;
+  }
 
   /* ─── Slot detail ──────────────────────────────────────── */
   .back-link {
@@ -134,27 +153,28 @@
   .back-link:hover { color: var(--text); }
 
   .stats-row {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
     margin-bottom: 18px;
   }
   .stat {
     background: #fff; border: 1px solid var(--border);
-    border-radius: 12px; padding: 14px 16px;
+    border-radius: 12px; padding: 12px 14px;
   }
   .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
-  .stat .small { font-size: 13px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+  .stat-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .stat .small { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
 
   .table-wrap {
     background: #fff; border: 1px solid var(--border);
     border-radius: 12px; overflow: hidden;
   }
   table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 12px 14px; text-align: left; font-size: 14px; }
+  th, td { padding: 12px 14px; text-align: left; font-size: 14px; vertical-align: middle; }
   th { background: var(--bg); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
   tr { border-top: 1px solid var(--border); }
   tr:first-child { border-top: 0; }
   tr.used { background: #f0fdf4; }
+  tr.rejected { background: #fef2f2; opacity: 0.7; }
   .code-cell {
     font-family: ui-monospace, "SF Mono", monospace;
     font-weight: 700; letter-spacing: 1px;
@@ -163,16 +183,55 @@
     display: inline-block; padding: 2px 8px;
     border-radius: 999px; font-size: 11px; font-weight: 600;
   }
-  .badge.used { background: #d1fae5; color: #065f46; }
-  .badge.pending { background: #fef3c7; color: #92400e; }
+  .badge.pending     { background: #fef3c7; color: #92400e; }
+  .badge.submitted   { background: #dbeafe; color: #1e40af; }
+  .badge.verified    { background: #d1fae5; color: #065f46; }
+  .badge.rejected    { background: #fee2e2; color: #991b1b; }
+  .badge.used        { background: #e0e7ff; color: #3730a3; }
+  .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
 
+  /* ─── Slip modal ───────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px;
+    max-width: 600px; width: 100%; max-height: 90vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .modal-head {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-close {
+    background: transparent; border: none;
+    font-size: 24px; cursor: pointer; color: var(--muted);
+    line-height: 1;
+  }
+  .modal-body { padding: 20px; overflow: auto; }
+  .modal-footer {
+    padding: 14px 20px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px;
+  }
+  .modal-footer .btn { flex: 1; padding: 12px; font-size: 14px; }
+  .slip-img { width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px; background: #f3f4f6; }
+  .modal-info { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .modal-info b { color: var(--text); }
+
   @media (max-width: 700px) {
-    .stats-row { grid-template-columns: 1fr; }
-    th:nth-child(4), td:nth-child(4),
-    th:nth-child(5), td:nth-child(5) { display: none; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    th:nth-child(4), td:nth-child(4) { display: none; }
     .container { padding: 16px; }
+  }
+  @media (max-width: 500px) {
+    th:nth-child(6), td:nth-child(6) { display: none; }
   }
 </style>
 </head>
@@ -219,7 +278,7 @@
       <!-- Overview -->
       <div id="overview-view">
         <div class="page-title">ภาพรวมการจอง</div>
-        <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · รอบละ 100 คน</div>
+        <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · รอบละ 100 คน · กดที่รอบเพื่อดูรายละเอียด</div>
         <div id="overview-content"></div>
       </div>
 
@@ -231,16 +290,20 @@
 
         <div class="stats-row">
           <div class="stat">
-            <div class="stat-label">จำนวนคนทั้งหมด</div>
+            <div class="stat-label">คนทั้งหมด</div>
             <div class="stat-value" id="stat-total">0<span class="small">/ <span id="stat-cap">100</span></span></div>
           </div>
           <div class="stat">
-            <div class="stat-label">ใช้สิทธิ์แล้ว</div>
-            <div class="stat-value" id="stat-used" style="color:var(--accent);">0</div>
+            <div class="stat-label">ยืนยันแล้ว</div>
+            <div class="stat-value" id="stat-verified" style="color:var(--accent);">0</div>
           </div>
           <div class="stat">
-            <div class="stat-label">ยังไม่ใช้สิทธิ์</div>
-            <div class="stat-value" id="stat-pending" style="color:var(--primary-dark);">0</div>
+            <div class="stat-label">รอตรวจสลิป</div>
+            <div class="stat-value" id="stat-review" style="color:var(--info);">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ใช้สิทธิ์</div>
+            <div class="stat-value" id="stat-used" style="color:#3730a3;">0</div>
           </div>
         </div>
 
@@ -249,12 +312,11 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>รหัส</th>
-                <th>ชื่อ - นามสกุล</th>
-                <th>เบอร์โทร</th>
-                <th>จำนวน</th>
+                <th>ชื่อ / ติดต่อ</th>
+                <th>คน</th>
                 <th>เวลาจอง</th>
-                <th>สถานะ</th>
+                <th>การชำระเงิน</th>
+                <th>รหัสตั๋ว</th>
                 <th></th>
               </tr>
             </thead>
@@ -266,9 +328,34 @@
     </div>
   </div>
 
+  <!-- Slip review modal -->
+  <div class="modal-overlay" id="slip-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title" id="slip-modal-title">ตรวจสลิปการชำระเงิน</div>
+        <button class="modal-close" id="slip-modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <img id="slip-img" class="slip-img" alt="สลิป" />
+        <div class="modal-info" id="slip-modal-info"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="slip-reject">ปฏิเสธสลิป</button>
+        <button class="btn btn-accent" id="slip-verify">✓ ยืนยัน + ออกตั๋ว</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 const TH_MONTH_LONG = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const TH_DAY_LONG   = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+const STATUS_LABEL = {
+  pending:   'รอชำระ',
+  submitted: 'รอตรวจสลิป',
+  verified:  'ยืนยันแล้ว',
+  rejected:  'ปฏิเสธ',
+};
 
 const $ = id => document.getElementById(id);
 
@@ -276,33 +363,19 @@ const state = {
   token: localStorage.getItem('admin_token') || null,
   overview: null,
   current: null,
+  modalBooking: null,
 };
 
-// ─── Auth ──────────────────────────────────────────────────
-function showLogin() {
-  $('login-view').style.display = 'flex';
-  $('app-view').style.display = 'none';
-}
-function showApp() {
-  $('login-view').style.display = 'none';
-  $('app-view').style.display = 'block';
-  loadOverview();
-}
+function showLogin() { $('login-view').style.display = 'flex'; $('app-view').style.display = 'none'; }
+function showApp()   { $('login-view').style.display = 'none'; $('app-view').style.display = 'block'; loadOverview(); }
 
-async function api(method, url, body) {
-  const opts = {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-  };
+async function api(method, url, body, isForm) {
+  const opts = { method, headers: {} };
   if (state.token) opts.headers.Authorization = `Bearer ${state.token}`;
-  if (body) opts.body = JSON.stringify(body);
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  if (body && isForm) opts.body = body;
   const res = await fetch(url, opts);
-  if (res.status === 401) {
-    state.token = null;
-    localStorage.removeItem('admin_token');
-    showLogin();
-    throw new Error('unauthorized');
-  }
+  if (res.status === 401) { state.token = null; localStorage.removeItem('admin_token'); showLogin(); throw new Error('unauthorized'); }
   if (res.status === 204) return null;
   return res.json();
 }
@@ -315,8 +388,7 @@ $('login-form').onsubmit = async (e) => {
   $('login-btn').disabled = true;
   try {
     const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
@@ -348,6 +420,9 @@ function fmtDateTitle(iso) {
   const d = new Date(iso + 'T00:00:00');
   return `วัน${TH_DAY_LONG[d.getDay()]}ที่ ${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
 }
+function fmtSlot(time) {
+  return `${time} - ${String(parseInt(time, 10) + 1).padStart(2, '0')}:00`;
+}
 
 async function loadOverview() {
   const data = await api('GET', '/api/admin/overview');
@@ -361,29 +436,34 @@ function renderOverview() {
   root.innerHTML = '';
   for (const date of dates) {
     const dayTotal = slots.reduce((s, t) => s + matrix[date][t].total_people, 0);
-    const dayUsed  = slots.reduce((s, t) => s + matrix[date][t].used_people, 0);
-    const dayBookings = slots.reduce((s, t) => s + matrix[date][t].bookings_count, 0);
+    const dayVerified = slots.reduce((s, t) => s + matrix[date][t].verified_people, 0);
+    const dayPending  = slots.reduce((s, t) => s + matrix[date][t].pending_review_count, 0);
 
     const block = document.createElement('div');
     block.className = 'day-block';
+    const pendingPill = dayPending > 0
+      ? `<span class="pending-pill">รอตรวจ ${dayPending}</span>` : '';
     block.innerHTML = `
       <div class="day-header">
-        <div class="day-title">${fmtDateTitle(date)}</div>
-        <div class="day-summary">${dayBookings} การจอง · ${dayTotal} คน · ใช้สิทธิ์ ${dayUsed}</div>
+        <div class="day-title">${fmtDateTitle(date)} ${pendingPill}</div>
+        <div class="day-summary">${dayTotal} คน · ยืนยันแล้ว ${dayVerified}</div>
       </div>
       <div class="slot-row" data-date="${date}"></div>
     `;
     const row = block.querySelector('.slot-row');
     for (const time of slots) {
       const m = matrix[date][time];
-      const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
       const pct = Math.min(100, (m.total_people / capacity) * 100);
-      const cls = m.total_people === 0 ? 'empty' : (m.total_people >= capacity ? 'full' : '');
+      let cls = '';
+      if (m.total_people === 0) cls = 'empty';
+      else if (m.total_people >= capacity) cls = 'full';
+      if (m.pending_review_count > 0) cls += ' has-pending';
       const tile = document.createElement('div');
       tile.className = `slot-tile ${cls}`;
       tile.innerHTML = `
-        <div class="slot-tile-time">${time} - ${endHour}</div>
-        <div class="slot-tile-meta">${m.total_people}/${capacity} คน · ใช้ ${m.used_people}</div>
+        ${m.pending_review_count > 0 ? `<div class="slot-tile-pending">${m.pending_review_count}</div>` : ''}
+        <div class="slot-tile-time">${fmtSlot(time)}</div>
+        <div class="slot-tile-meta">${m.total_people}/${capacity} คน · ✓${m.verified_people} · ใช้${m.used_people}</div>
         <div class="slot-tile-bar"><div class="slot-tile-bar-fill" style="width:${pct}%"></div></div>
       `;
       tile.onclick = () => openSlot(date, time);
@@ -414,59 +494,154 @@ async function loadSlot(date, time) {
 
 function renderSlot() {
   const s = state.current;
-  const endHour = String(parseInt(s.time, 10) + 1).padStart(2, '0') + ':00';
-  $('slot-title').textContent = `รอบ ${s.time} - ${endHour}`;
+  $('slot-title').textContent = `รอบ ${fmtSlot(s.time)}`;
   $('slot-subtitle').textContent = fmtDateTitle(s.date);
   $('stat-total').firstChild.textContent = s.total_people;
   $('stat-cap').textContent = s.capacity;
+  $('stat-verified').textContent = s.verified_people;
+  $('stat-review').textContent = s.pending_review_people;
   $('stat-used').textContent = s.used_people;
-  $('stat-pending').textContent = s.total_people - s.used_people;
 
   const tbody = $('slot-bookings');
   tbody.innerHTML = '';
-  if (!s.bookings.length) {
-    $('slot-empty').style.display = 'block';
-    return;
-  }
+  if (!s.bookings.length) { $('slot-empty').style.display = 'block'; return; }
   $('slot-empty').style.display = 'none';
 
   s.bookings.forEach((b, i) => {
     const tr = document.createElement('tr');
+    if (b.payment_status === 'rejected') tr.classList.add('rejected');
     if (b.used) tr.classList.add('used');
-    const created = new Date(b.created_at + 'Z').toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+
+    const created = b.created_at
+      ? new Date(b.created_at + 'Z').toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })
+      : '';
+
+    // payment column
+    const payParts = [`<span class="badge ${b.payment_status}">${STATUS_LABEL[b.payment_status]}</span>`];
+    if (b.has_slip) {
+      payParts.push(`<button class="btn btn-info" data-action="view-slip" data-id="${b.id}" style="margin-top:4px; display:block;">📷 ดูสลิป</button>`);
+    } else if (b.payment_status === 'pending') {
+      payParts.push(`<div style="font-size:11px; color:var(--muted); margin-top:2px;">ยังไม่ส่งสลิป</div>`);
+    }
+
+    // actions column
+    const actionParts = [];
+    if (b.has_slip && b.payment_status !== 'verified') {
+      actionParts.push(`<button class="btn btn-accent" data-action="quick-verify" data-id="${b.id}">✓ ออกตั๋ว</button>`);
+    } else if (!b.has_slip && b.payment_status !== 'verified') {
+      actionParts.push(`<button class="btn btn-ghost" data-action="quick-verify" data-id="${b.id}">ออกตั๋ว (ไม่มีสลิป)</button>`);
+    }
+    if (b.payment_status === 'verified') {
+      if (b.used) {
+        actionParts.push(`<button class="btn btn-ghost" data-action="unuse" data-id="${b.id}">ยกเลิกใช้สิทธิ์</button>`);
+      } else {
+        actionParts.push(`<button class="btn btn-accent" data-action="use" data-id="${b.id}">ใช้สิทธิ์</button>`);
+      }
+    }
+    if (b.payment_status === 'verified' || b.payment_status === 'rejected') {
+      actionParts.push(`<button class="btn btn-ghost" data-action="reset" data-id="${b.id}">รีเซ็ต</button>`);
+    }
+
     tr.innerHTML = `
       <td>${i + 1}</td>
-      <td class="code-cell">${escapeHtml(b.code)}</td>
-      <td>${escapeHtml(b.name)}<div style="font-size:11px; color:var(--muted);">${escapeHtml(b.email)}</div></td>
-      <td>${escapeHtml(b.phone)}</td>
-      <td>${b.num_people} คน</td>
+      <td>
+        <div style="font-weight:600;">${escapeHtml(b.name)}</div>
+        <div style="font-size:11px; color:var(--muted);">${escapeHtml(b.phone)} · ${escapeHtml(b.email)}</div>
+      </td>
+      <td>${b.num_people}</td>
       <td>${created}</td>
-      <td>${b.used
-        ? `<span class="badge used">ใช้สิทธิ์แล้ว</span>`
-        : `<span class="badge pending">รอใช้สิทธิ์</span>`}</td>
-      <td>${b.used
-        ? `<button class="btn btn-ghost" data-action="unuse" data-id="${b.id}">ยกเลิก</button>`
-        : `<button class="btn btn-accent" data-action="use" data-id="${b.id}">ใช้สิทธิ์</button>`}</td>
+      <td>${payParts.join('')}</td>
+      <td>${
+        b.payment_status === 'verified'
+          ? `<span class="code-cell">${escapeHtml(b.code)}</span>${b.used ? '<div><span class="badge used">ใช้สิทธิ์แล้ว</span></div>' : ''}`
+          : '<span style="color:var(--muted); font-size:12px;">—</span>'
+      }</td>
+      <td><div class="actions-cell">${actionParts.join('')}</div></td>
     `;
     tbody.appendChild(tr);
   });
 
   tbody.querySelectorAll('button[data-action]').forEach(btn => {
-    btn.onclick = async () => {
-      const id = btn.dataset.id;
-      const action = btn.dataset.action;
-      btn.disabled = true;
-      try {
-        await api('POST', `/api/admin/bookings/${id}/${action}`);
-        await loadSlot(state.current.date, state.current.time);
-      } catch {
-        alert('เกิดข้อผิดพลาด');
-      } finally {
-        btn.disabled = false;
-      }
-    };
+    btn.onclick = () => handleAction(btn.dataset.action, Number(btn.dataset.id), btn);
   });
 }
+
+async function handleAction(action, id, btn) {
+  const booking = state.current.bookings.find(b => b.id === id);
+  if (!booking) return;
+
+  if (action === 'view-slip') {
+    openSlipModal(booking);
+    return;
+  }
+
+  if (action === 'quick-verify' && !confirm('ยืนยันการชำระเงินและออกตั๋ว?')) return;
+  if (action === 'reset' && !confirm('รีเซ็ตสถานะกลับเป็นรอตรวจสอบ?')) return;
+
+  btn.disabled = true;
+  try {
+    const map = {
+      'quick-verify': 'verify',
+      'use': 'use',
+      'unuse': 'unuse',
+      'reset': 'reset',
+    };
+    await api('POST', `/api/admin/bookings/${id}/${map[action]}`);
+    await loadSlot(state.current.date, state.current.time);
+  } catch {
+    alert('เกิดข้อผิดพลาด');
+    btn.disabled = false;
+  }
+}
+
+// ─── Slip modal ────────────────────────────────────────────
+function openSlipModal(b) {
+  state.modalBooking = b;
+  $('slip-modal-title').textContent = `สลิป — ${b.name}`;
+  $('slip-img').src = `/api/admin/bookings/${b.id}/slip?t=${Date.now()}`;
+  $('slip-img').onerror = () => { $('slip-img').alt = 'โหลดสลิปไม่สำเร็จ'; };
+  $('slip-modal-info').innerHTML = `
+    <div><b>ชื่อ:</b> ${escapeHtml(b.name)}</div>
+    <div><b>เบอร์:</b> ${escapeHtml(b.phone)} &nbsp; <b>อีเมล:</b> ${escapeHtml(b.email)}</div>
+    <div><b>จำนวน:</b> ${b.num_people} คน</div>
+    <div><b>ส่งเมื่อ:</b> ${b.slip_uploaded_at ? new Date(b.slip_uploaded_at + 'Z').toLocaleString('th-TH') : '-'}</div>
+    <div><b>สถานะปัจจุบัน:</b> <span class="badge ${b.payment_status}">${STATUS_LABEL[b.payment_status]}</span></div>
+    ${b.rejected_reason ? `<div style="color:#991b1b;"><b>เหตุผลปฏิเสธก่อนหน้า:</b> ${escapeHtml(b.rejected_reason)}</div>` : ''}
+  `;
+  // Hide verify if already verified
+  $('slip-verify').style.display = b.payment_status === 'verified' ? 'none' : 'block';
+  $('slip-modal').classList.add('active');
+}
+function closeSlipModal() {
+  $('slip-modal').classList.remove('active');
+  state.modalBooking = null;
+}
+$('slip-modal-close').onclick = closeSlipModal;
+$('slip-modal').onclick = (e) => { if (e.target === $('slip-modal')) closeSlipModal(); };
+
+$('slip-verify').onclick = async () => {
+  const b = state.modalBooking; if (!b) return;
+  $('slip-verify').disabled = true;
+  try {
+    await api('POST', `/api/admin/bookings/${b.id}/verify`);
+    closeSlipModal();
+    await loadSlot(state.current.date, state.current.time);
+  } catch { alert('เกิดข้อผิดพลาด'); }
+  finally { $('slip-verify').disabled = false; }
+};
+
+$('slip-reject').onclick = async () => {
+  const b = state.modalBooking; if (!b) return;
+  const reason = prompt('เหตุผลที่ปฏิเสธสลิป (ผู้จองจะเห็นข้อความนี้):', 'สลิปไม่ตรงกับยอดที่ต้องชำระ');
+  if (reason === null) return;
+  $('slip-reject').disabled = true;
+  try {
+    await api('POST', `/api/admin/bookings/${b.id}/reject`, { reason });
+    closeSlipModal();
+    await loadSlot(state.current.date, state.current.time);
+  } catch { alert('เกิดข้อผิดพลาด'); }
+  finally { $('slip-reject').disabled = false; }
+};
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({
@@ -477,15 +652,9 @@ function escapeHtml(s) {
 // ─── Boot ──────────────────────────────────────────────────
 (async () => {
   if (state.token) {
-    try {
-      await api('GET', '/api/admin/overview');
-      showApp();
-    } catch {
-      showLogin();
-    }
-  } else {
-    showLogin();
-  }
+    try { await api('GET', '/api/admin/overview'); showApp(); }
+    catch { showLogin(); }
+  } else showLogin();
 })();
 </script>
 </body>

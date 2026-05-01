@@ -10,7 +10,9 @@
     --primary: #f59e0b;
     --primary-dark: #d97706;
     --accent: #10b981;
+    --info: #3b82f6;
     --danger: #ef4444;
+    --warning: #f59e0b;
     --bg-grad: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #92400e 100%);
     --text: #1f2937;
     --muted: #6b7280;
@@ -44,9 +46,22 @@
     font-size: 22px;
   }
   h1 { font-size: 22px; }
-  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
 
-  .progress { display: flex; gap: 6px; margin-bottom: 28px; }
+  /* Mode tabs */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 20px;
+    background: var(--bg); padding: 4px; border-radius: 12px;
+  }
+  .tab {
+    flex: 1; padding: 10px 12px;
+    text-align: center; cursor: pointer;
+    border-radius: 8px; font-size: 13px; font-weight: 600;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 24px; }
   .progress-step {
     flex: 1; height: 6px; border-radius: 3px;
     background: var(--border); transition: background 0.3s;
@@ -54,8 +69,8 @@
   .progress-step.active { background: var(--primary); }
   .progress-step.done { background: var(--accent); }
 
-  .step { display: none; }
-  .step.active { display: block; }
+  .step, .view { display: none; }
+  .step.active, .view.active { display: block; }
 
   .step-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
   .step-hint { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
@@ -80,38 +95,31 @@
   }
   .counter-label { text-align: center; color: var(--muted); font-size: 13px; }
 
-  /* Date grid */
+  /* Date/Slot grids */
   .date-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 10px; margin-bottom: 8px;
   }
-  .date-card {
+  .slot-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .date-card, .slot-card {
     border: 2px solid var(--border); border-radius: 12px;
     padding: 12px 8px; text-align: center; cursor: pointer;
     background: var(--surface); transition: all 0.15s;
   }
-  .date-card:hover:not(.disabled) { border-color: var(--primary); transform: translateY(-1px); }
-  .date-card.selected { border-color: var(--primary); background: #fef3c7; }
-  .date-card.disabled { opacity: 0.4; cursor: not-allowed; background: #f9fafb; }
+  .slot-card { padding: 12px; text-align: left; }
+  .date-card:hover:not(.disabled), .slot-card:hover:not(.disabled) {
+    border-color: var(--primary); transform: translateY(-1px);
+  }
+  .date-card.selected, .slot-card.selected { border-color: var(--primary); background: #fef3c7; }
+  .date-card.disabled, .slot-card.disabled { opacity: 0.4; cursor: not-allowed; background: #f9fafb; }
   .date-day { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
   .date-num { font-size: 24px; font-weight: 700; margin: 2px 0; }
   .date-month { font-size: 11px; color: var(--muted); }
   .date-status { font-size: 10px; margin-top: 4px; color: var(--accent); }
   .date-card.disabled .date-status { color: var(--danger); }
-
-  /* Slot grid */
-  .slot-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
-  }
-  .slot-card {
-    border: 2px solid var(--border); border-radius: 12px;
-    padding: 12px; cursor: pointer; background: var(--surface);
-    transition: all 0.15s;
-  }
-  .slot-card:hover:not(.disabled) { border-color: var(--primary); transform: translateY(-1px); }
-  .slot-card.selected { border-color: var(--primary); background: #fef3c7; }
-  .slot-card.disabled { opacity: 0.4; cursor: not-allowed; background: #f9fafb; }
   .slot-time { font-size: 16px; font-weight: 700; }
   .slot-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
   .slot-card.disabled .slot-meta { color: var(--danger); }
@@ -128,22 +136,63 @@
   .field input:focus { outline: none; border-color: var(--primary); }
   .field .err { color: var(--danger); font-size: 12px; margin-top: 4px; min-height: 14px; }
 
-  /* Summary */
+  /* Payment box */
+  .pay-box {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 2px solid #bfdbfe; border-radius: 14px;
+    padding: 18px; margin-bottom: 16px;
+  }
+  .pay-bank { font-size: 15px; font-weight: 700; color: #1e40af; margin-bottom: 10px; }
+  .pay-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; font-size: 14px;
+  }
+  .pay-row .l { color: #1e3a8a; opacity: 0.8; }
+  .pay-row .v { font-weight: 700; font-family: ui-monospace, "SF Mono", monospace; color: #1e40af; }
+  .pay-amount {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed #93c5fd;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .pay-amount .l { color: #1e3a8a; font-size: 13px; }
+  .pay-amount .v { font-size: 24px; font-weight: 800; color: #1e40af; }
+
+  /* Slip upload */
+  .upload-area {
+    border: 2px dashed var(--border); border-radius: 14px;
+    padding: 24px; text-align: center; cursor: pointer;
+    background: var(--bg); transition: all 0.15s;
+  }
+  .upload-area:hover { border-color: var(--primary); background: #fef3c7; }
+  .upload-area.has-file { border-color: var(--accent); background: #ecfdf5; border-style: solid; }
+  .upload-icon { font-size: 36px; margin-bottom: 6px; }
+  .upload-hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .upload-preview {
+    max-width: 100%; max-height: 200px; border-radius: 8px;
+    margin-top: 10px; display: block; margin-left: auto; margin-right: auto;
+  }
+  input[type="file"] { display: none; }
+
+  /* Summary box */
   .summary {
     background: var(--bg); border-radius: 12px;
     padding: 16px; margin-bottom: 16px; border: 1px dashed #fbbf24;
   }
-  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; gap: 12px; }
   .summary-row .label { color: var(--muted); }
-  .summary-row .value { font-weight: 600; }
+  .summary-row .value { font-weight: 600; text-align: right; }
 
-  .confirm-card {
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
-    border: 2px solid var(--accent); border-radius: 16px;
-    padding: 24px; text-align: center; margin-bottom: 16px;
-  }
-  .confirm-icon { font-size: 48px; margin-bottom: 8px; }
-  .confirm-code {
+  /* Status banners */
+  .status-card { padding: 18px; border-radius: 14px; margin-bottom: 16px; }
+  .status-card .icon { font-size: 36px; margin-bottom: 6px; }
+  .status-card .title { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .status-card .desc { font-size: 13px; opacity: 0.9; }
+  .status-pending     { background: #fef3c7; border: 2px solid #fcd34d; color: #92400e; }
+  .status-submitted   { background: #dbeafe; border: 2px solid #93c5fd; color: #1e40af; }
+  .status-verified    { background: #d1fae5; border: 2px solid #6ee7b7; color: #065f46; }
+  .status-rejected    { background: #fee2e2; border: 2px solid #fca5a5; color: #991b1b; }
+
+  .ticket-code {
     font-family: ui-monospace, "SF Mono", monospace;
     font-size: 32px; letter-spacing: 6px; font-weight: 700;
     color: var(--primary-dark); background: #fff;
@@ -166,26 +215,47 @@
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-secondary { background: var(--border); color: var(--text); }
   .btn-secondary:hover { background: #d1d5db; }
+  .btn-info { background: var(--info); color: #fff; }
+  .btn-info:hover { filter: brightness(0.92); }
 
   .alert {
     padding: 12px; border-radius: 10px; font-size: 13px;
     margin-bottom: 16px; display: none;
   }
   .alert.error { background: #fee2e2; color: #991b1b; display: block; }
+  .alert.success { background: #d1fae5; color: #065f46; display: block; }
 
-  .empty { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; }
-
-  .admin-link {
-    text-align: center; margin-top: 16px;
-    font-size: 12px;
+  .booking-card {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
   }
-  .admin-link a { color: var(--muted); text-decoration: none; }
-  .admin-link a:hover { color: var(--primary-dark); }
+  .booking-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px; margin-bottom: 8px;
+  }
+  .booking-card-title { font-weight: 700; font-size: 15px; }
+  .booking-card-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 999px; font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge.pending     { background: #fef3c7; color: #92400e; }
+  .badge.submitted   { background: #dbeafe; color: #1e40af; }
+  .badge.verified    { background: #d1fae5; color: #065f46; }
+  .badge.rejected    { background: #fee2e2; color: #991b1b; }
+  .badge.used        { background: #e0e7ff; color: #3730a3; }
+
+  .footer-link {
+    text-align: center; margin-top: 16px; font-size: 12px;
+  }
+  .footer-link a { color: var(--muted); text-decoration: none; }
+  .footer-link a:hover { color: var(--primary-dark); }
 
   @media (max-width: 480px) {
     .card { padding: 24px 20px; }
     .counter-value { font-size: 40px; }
-    .confirm-code { font-size: 26px; letter-spacing: 4px; }
+    .ticket-code { font-size: 26px; letter-spacing: 4px; }
   }
 </style>
 </head>
@@ -199,96 +269,192 @@
       </div>
     </div>
 
-    <div class="progress">
-      <div class="progress-step active" id="ps-1"></div>
-      <div class="progress-step" id="ps-2"></div>
-      <div class="progress-step" id="ps-3"></div>
-      <div class="progress-step" id="ps-4"></div>
-      <div class="progress-step" id="ps-5"></div>
+    <div class="tabs">
+      <div class="tab active" data-mode="new">จองรอบใหม่</div>
+      <div class="tab" data-mode="lookup">ตรวจสอบสถานะ</div>
     </div>
 
     <div id="alert" class="alert"></div>
 
-    <!-- Step 1: People -->
-    <div class="step active" id="step-1">
-      <div class="step-title">เลือกจำนวนคน</div>
-      <div class="step-hint">รอบละไม่เกิน 100 คน</div>
-      <div class="people-counter">
-        <button class="counter-btn" id="dec-people">−</button>
-        <div class="counter-value" id="people-value">2</div>
-        <button class="counter-btn" id="inc-people">+</button>
+    <!-- ═══ NEW BOOKING FLOW ════════════════════════════════════ -->
+    <div class="view active" id="view-new">
+      <div class="progress">
+        <div class="progress-step active" data-ps="1"></div>
+        <div class="progress-step" data-ps="2"></div>
+        <div class="progress-step" data-ps="3"></div>
+        <div class="progress-step" data-ps="4"></div>
+        <div class="progress-step" data-ps="5"></div>
+        <div class="progress-step" data-ps="6"></div>
       </div>
-      <div class="counter-label">คน</div>
-      <div class="actions">
-        <button class="btn btn-primary" id="next-1">ถัดไป</button>
-      </div>
-    </div>
 
-    <!-- Step 2: Date -->
-    <div class="step" id="step-2">
-      <div class="step-title">เลือกวันที่</div>
-      <div class="step-hint">เฉพาะวันที่มีรอบว่างสำหรับ <span id="hint-people">2</span> คน</div>
-      <div class="date-grid" id="date-grid"></div>
-      <div class="actions">
-        <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
-        <button class="btn btn-primary" id="next-2" disabled>ถัดไป</button>
-      </div>
-    </div>
-
-    <!-- Step 3: Time -->
-    <div class="step" id="step-3">
-      <div class="step-title">เลือกรอบเวลา</div>
-      <div class="step-hint" id="time-hint">รอบละ 1 ชั่วโมง</div>
-      <div class="slot-grid" id="slot-grid"></div>
-      <div class="actions">
-        <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
-        <button class="btn btn-primary" id="next-3" disabled>ถัดไป</button>
-      </div>
-    </div>
-
-    <!-- Step 4: Form -->
-    <div class="step" id="step-4">
-      <div class="step-title">กรอกข้อมูลผู้จอง</div>
-      <div class="step-hint" id="form-hint"></div>
-      <form id="booking-form" novalidate>
-        <div class="field">
-          <label for="f-name">ชื่อ - นามสกุล</label>
-          <input type="text" id="f-name" autocomplete="name" required />
-          <div class="err" data-err="name"></div>
+      <!-- Step 1: People -->
+      <div class="step active" data-step="1">
+        <div class="step-title">เลือกจำนวนคน</div>
+        <div class="step-hint">รอบละไม่เกิน 100 คน</div>
+        <div class="people-counter">
+          <button class="counter-btn" id="dec-people">−</button>
+          <div class="counter-value" id="people-value">2</div>
+          <button class="counter-btn" id="inc-people">+</button>
         </div>
-        <div class="field">
-          <label for="f-phone">เบอร์โทรศัพท์</label>
-          <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
-          <div class="err" data-err="phone"></div>
-        </div>
-        <div class="field">
-          <label for="f-email">อีเมล</label>
-          <input type="email" id="f-email" autocomplete="email" placeholder="you@example.com" required />
-          <div class="err" data-err="email"></div>
-        </div>
+        <div class="counter-label">คน</div>
         <div class="actions">
-          <button type="button" class="btn btn-secondary" data-back>ย้อนกลับ</button>
-          <button type="submit" class="btn btn-primary" id="submit-booking">ยืนยันการจอง</button>
+          <button class="btn btn-primary" id="next-1">ถัดไป</button>
         </div>
-      </form>
+      </div>
+
+      <!-- Step 2: Date -->
+      <div class="step" data-step="2">
+        <div class="step-title">เลือกวันที่</div>
+        <div class="step-hint">เฉพาะวันที่มีรอบว่างสำหรับ <span id="hint-people">2</span> คน</div>
+        <div class="date-grid" id="date-grid"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+          <button class="btn btn-primary" id="next-2" disabled>ถัดไป</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Time -->
+      <div class="step" data-step="3">
+        <div class="step-title">เลือกรอบเวลา</div>
+        <div class="step-hint" id="time-hint">รอบละ 1 ชั่วโมง</div>
+        <div class="slot-grid" id="slot-grid"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+          <button class="btn btn-primary" id="next-3" disabled>ถัดไป</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Form -->
+      <div class="step" data-step="4">
+        <div class="step-title">กรอกข้อมูลผู้จอง</div>
+        <div class="step-hint" id="form-hint"></div>
+        <form id="booking-form" novalidate>
+          <div class="field">
+            <label for="f-name">ชื่อ - นามสกุล</label>
+            <input type="text" id="f-name" autocomplete="name" required />
+            <div class="err" data-err="name"></div>
+          </div>
+          <div class="field">
+            <label for="f-phone">เบอร์โทรศัพท์</label>
+            <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+            <div class="err" data-err="phone"></div>
+          </div>
+          <div class="field">
+            <label for="f-email">อีเมล</label>
+            <input type="email" id="f-email" autocomplete="email" placeholder="you@example.com" required />
+            <div class="err" data-err="email"></div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-secondary" data-back>ย้อนกลับ</button>
+            <button type="submit" class="btn btn-primary" id="submit-booking">บันทึกการจอง</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 5: Payment -->
+      <div class="step" data-step="5">
+        <div class="step-title">ชำระเงิน</div>
+        <div class="step-hint">โอนเงินตามจำนวนด้านล่าง แล้วแนบสลิป (จะแนบทีหลังก็ได้)</div>
+
+        <div class="pay-box">
+          <div class="pay-bank" id="pay-bank">ธนาคาร...</div>
+          <div class="pay-row"><span class="l">ชื่อบัญชี</span><span class="v" id="pay-name">-</span></div>
+          <div class="pay-row"><span class="l">เลขที่บัญชี</span><span class="v" id="pay-no">-</span></div>
+          <div class="pay-amount">
+            <span class="l">ยอดที่ต้องชำระ</span>
+            <span class="v" id="pay-total">฿0</span>
+          </div>
+          <div style="font-size:11px; color:#1e3a8a; opacity:0.7; margin-top:6px;" id="pay-breakdown"></div>
+        </div>
+
+        <label for="f-slip" class="upload-area" id="upload-label">
+          <div class="upload-icon">📎</div>
+          <div style="font-weight:600;">แนบสลิปการโอนเงิน</div>
+          <div class="upload-hint">JPG / PNG / WEBP / HEIC ไม่เกิน 5MB</div>
+          <img id="slip-preview" class="upload-preview" style="display:none;" />
+        </label>
+        <input type="file" id="f-slip" accept="image/*" />
+
+        <div class="actions">
+          <button class="btn btn-secondary" id="skip-slip">แนบทีหลัง</button>
+          <button class="btn btn-primary" id="upload-slip" disabled>ส่งสลิป</button>
+        </div>
+      </div>
+
+      <!-- Step 6: Confirmation/Summary -->
+      <div class="step" data-step="6">
+        <div id="conf-status"></div>
+        <div class="summary" id="conf-summary"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="new-booking">จองรอบใหม่</button>
+          <button class="btn btn-info" id="goto-lookup">ตรวจสอบสถานะ</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Step 5: Confirmation -->
-    <div class="step" id="step-5">
-      <div class="confirm-card">
-        <div class="confirm-icon">✅</div>
-        <div style="font-size:18px; font-weight:600; color:#065f46;">จองสำเร็จ!</div>
-        <div style="font-size:13px; color:#047857; margin-top:4px;">กรุณาบันทึกรหัสนี้เพื่อแสดงในวันใช้สิทธิ์</div>
-        <div class="confirm-code" id="conf-code">------</div>
-        <div style="font-size:12px; color:var(--muted);">รหัสยืนยัน 6 หลัก</div>
+    <!-- ═══ LOOKUP FLOW ════════════════════════════════════════ -->
+    <div class="view" id="view-lookup">
+      <!-- Lookup form -->
+      <div class="step active" data-lstep="phone">
+        <div class="step-title">ตรวจสอบสถานะการจอง</div>
+        <div class="step-hint">กรอกเบอร์โทรศัพท์ที่ใช้จอง</div>
+        <form id="lookup-form" novalidate>
+          <div class="field">
+            <label for="lk-phone">เบอร์โทรศัพท์</label>
+            <input type="tel" id="lk-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+            <div class="err" data-err="lk-phone"></div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="lookup-btn">ค้นหาการจอง</button>
+          </div>
+        </form>
       </div>
-      <div class="summary" id="conf-summary"></div>
-      <div class="actions">
-        <button class="btn btn-primary" id="new-booking">จองรอบใหม่</button>
+
+      <!-- Lookup result list -->
+      <div class="step" data-lstep="list">
+        <div class="step-title">การจองของคุณ</div>
+        <div class="step-hint">เลือกการจองเพื่อดูรายละเอียด หรือแนบสลิปเพิ่มเติม</div>
+        <div id="lk-bookings"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="lk-back-phone">ค้นหาเบอร์อื่น</button>
+        </div>
+      </div>
+
+      <!-- Lookup detail -->
+      <div class="step" data-lstep="detail">
+        <div id="lk-detail-status"></div>
+        <div class="summary" id="lk-detail-summary"></div>
+
+        <div id="lk-pay-section" style="display:none;">
+          <div class="pay-box" style="margin-top:8px;">
+            <div class="pay-bank" id="lk-pay-bank">ธนาคาร...</div>
+            <div class="pay-row"><span class="l">ชื่อบัญชี</span><span class="v" id="lk-pay-name">-</span></div>
+            <div class="pay-row"><span class="l">เลขที่บัญชี</span><span class="v" id="lk-pay-no">-</span></div>
+            <div class="pay-amount">
+              <span class="l">ยอดที่ต้องชำระ</span>
+              <span class="v" id="lk-pay-total">฿0</span>
+            </div>
+          </div>
+
+          <label for="lk-slip" class="upload-area" id="lk-upload-label" style="margin-top:10px;">
+            <div class="upload-icon">📎</div>
+            <div style="font-weight:600;">แนบสลิปการโอนเงิน</div>
+            <div class="upload-hint">JPG / PNG / WEBP / HEIC ไม่เกิน 5MB</div>
+            <img id="lk-slip-preview" class="upload-preview" style="display:none;" />
+          </label>
+          <input type="file" id="lk-slip" accept="image/*" />
+          <div class="actions">
+            <button class="btn btn-primary" id="lk-upload-slip" disabled>ส่งสลิป</button>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button class="btn btn-secondary" id="lk-back-list">← การจองทั้งหมด</button>
+        </div>
       </div>
     </div>
 
-    <div class="admin-link"><a href="/admin.html">เข้าสู่ระบบหลังบ้าน →</a></div>
+    <div class="footer-link"><a href="/admin.html">เข้าสู่ระบบหลังบ้าน →</a></div>
   </div>
 
 <script>
@@ -296,42 +462,80 @@ const TH_MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.�
 const TH_MONTH_LONG  = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const TH_DAY_SHORT   = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
 
+const STATUS_LABEL = {
+  pending:   { label: 'รอชำระเงิน',     icon: '💳', cls: 'status-pending',   badge: 'pending'   },
+  submitted: { label: 'รอตรวจสอบสลิป', icon: '⏳', cls: 'status-submitted', badge: 'submitted' },
+  verified:  { label: 'ยืนยันแล้ว',      icon: '✅', cls: 'status-verified',  badge: 'verified'  },
+  rejected:  { label: 'สลิปไม่ถูกต้อง', icon: '❌', cls: 'status-rejected',  badge: 'rejected'  },
+};
+
 const state = {
+  mode: 'new',
   step: 1,
   people: 2,
   date: null,
   time: null,
   config: null,
   availability: null,
+  booking: null,
+  slipFile: null,
+  // lookup
+  lkPhone: null,
+  lkBookings: [],
+  lkCurrent: null,
+  lkSlipFile: null,
 };
 
 const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
 
-function setStep(n) {
-  state.step = n;
-  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-  $(`step-${n}`).classList.add('active');
-  for (let i = 1; i <= 5; i++) {
-    const ps = $(`ps-${i}`);
-    ps.classList.remove('active', 'done');
-    if (i < n) ps.classList.add('done');
-    else if (i === n) ps.classList.add('active');
-  }
-  hideAlert();
-}
-
-function showAlert(msg) {
+function showAlert(msg, kind = 'error') {
   const a = $('alert');
   a.textContent = msg;
-  a.className = 'alert error';
+  a.className = `alert ${kind}`;
 }
-function hideAlert() {
-  $('alert').className = 'alert';
+function hideAlert() { $('alert').className = 'alert'; }
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
 }
 
 function fmtDateLong(iso) {
   const d = new Date(iso + 'T00:00:00');
   return `${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+function fmtSlot(time) {
+  const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
+  return `${time} - ${endHour}`;
+}
+function fmtBaht(n) { return '฿' + Number(n).toLocaleString('th-TH'); }
+
+// ─── Mode tabs ─────────────────────────────────────────────
+$$('.tab').forEach(t => {
+  t.onclick = () => {
+    state.mode = t.dataset.mode;
+    $$('.tab').forEach(x => x.classList.toggle('active', x === t));
+    $$('.view').forEach(v => v.classList.remove('active'));
+    $(`view-${state.mode}`).classList.add('active');
+    hideAlert();
+    if (state.mode === 'lookup') showLstep('phone');
+  };
+});
+
+// ─── New-booking step machine ──────────────────────────────
+function setStep(n) {
+  state.step = n;
+  $$('#view-new .step').forEach(el => el.classList.remove('active'));
+  document.querySelector(`#view-new .step[data-step="${n}"]`).classList.add('active');
+  $$('#view-new .progress-step').forEach(ps => {
+    const i = +ps.dataset.ps;
+    ps.classList.remove('active', 'done');
+    if (i < n) ps.classList.add('done');
+    else if (i === n) ps.classList.add('active');
+  });
+  hideAlert();
 }
 
 // ─── Step 1: people ────────────────────────────────────────
@@ -351,24 +555,16 @@ $('next-1').onclick = async () => {
 
 // ─── Step 2: date ──────────────────────────────────────────
 async function loadAvailability() {
-  if (!state.config) {
-    const cfg = await fetch('/api/config').then(r => r.json());
-    state.config = cfg;
-  }
-  const av = await fetch(`/api/availability?people=${state.people}`).then(r => r.json());
-  state.availability = av;
+  if (!state.config) state.config = await fetch('/api/config').then(r => r.json());
+  state.availability = await fetch(`/api/availability?people=${state.people}`).then(r => r.json());
 }
-
 function dateHasAvailableSlot(date) {
-  const slots = state.availability.slots[date];
-  return Object.values(slots).some(s => s.available);
+  return Object.values(state.availability.slots[date]).some(s => s.available);
 }
-
 function renderDates() {
   const grid = $('date-grid');
   grid.innerHTML = '';
-  const dates = state.config.dates;
-  for (const date of dates) {
+  for (const date of state.config.dates) {
     const d = new Date(date + 'T00:00:00');
     const has = dateHasAvailableSlot(date);
     const card = document.createElement('div');
@@ -379,22 +575,12 @@ function renderDates() {
       <div class="date-month">${TH_MONTH_SHORT[d.getMonth()]}</div>
       <div class="date-status">${has ? 'มีรอบว่าง' : 'เต็ม'}</div>
     `;
-    if (has) {
-      card.onclick = () => {
-        state.date = date;
-        renderDates();
-        $('next-2').disabled = false;
-      };
-    }
+    if (has) card.onclick = () => { state.date = date; renderDates(); $('next-2').disabled = false; };
     grid.appendChild(card);
   }
   $('next-2').disabled = !state.date || !dateHasAvailableSlot(state.date);
 }
-
-$('next-2').onclick = () => {
-  renderSlots();
-  setStep(3);
-};
+$('next-2').onclick = () => { renderSlots(); setStep(3); };
 
 // ─── Step 3: time ──────────────────────────────────────────
 function renderSlots() {
@@ -402,41 +588,30 @@ function renderSlots() {
   const grid = $('slot-grid');
   grid.innerHTML = '';
   const slots = state.availability.slots[state.date];
-  const slotKeys = state.config.slots;
-  for (const time of slotKeys) {
+  for (const time of state.config.slots) {
     const info = slots[time];
-    const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
     const card = document.createElement('div');
     card.className = 'slot-card' + (info.available ? '' : ' disabled') + (state.time === time ? ' selected' : '');
     card.innerHTML = `
-      <div class="slot-time">${time} - ${endHour}</div>
+      <div class="slot-time">${fmtSlot(time)}</div>
       <div class="slot-meta">${info.available ? `เหลือ ${info.remaining} ที่นั่ง` : 'เต็ม'}</div>
     `;
-    if (info.available) {
-      card.onclick = () => {
-        state.time = time;
-        renderSlots();
-        $('next-3').disabled = false;
-      };
-    }
+    if (info.available) card.onclick = () => { state.time = time; renderSlots(); $('next-3').disabled = false; };
     grid.appendChild(card);
   }
   $('next-3').disabled = !state.time || !slots[state.time]?.available;
 }
-
 $('next-3').onclick = () => {
-  const endHour = String(parseInt(state.time, 10) + 1).padStart(2, '0') + ':00';
   $('form-hint').textContent =
-    `${state.people} คน • ${fmtDateLong(state.date)} • ${state.time} - ${endHour}`;
+    `${state.people} คน • ${fmtDateLong(state.date)} • ${fmtSlot(state.time)}`;
   setStep(4);
 };
 
 // ─── Step 4: form ──────────────────────────────────────────
-function clearErrors() {
-  document.querySelectorAll('[data-err]').forEach(el => el.textContent = '');
-}
+function clearErrors() { $$('[data-err]').forEach(el => el.textContent = ''); }
 function setError(field, msg) {
-  document.querySelector(`[data-err="${field}"]`).textContent = msg;
+  const el = document.querySelector(`[data-err="${field}"]`);
+  if (el) el.textContent = msg;
 }
 
 $('booking-form').onsubmit = async (e) => {
@@ -470,58 +645,254 @@ $('booking-form').onsubmit = async (e) => {
     });
     const data = await res.json();
     if (!res.ok) {
-      if (data.fields) {
-        for (const [k, v] of Object.entries(data.fields)) setError(k, v);
-      } else if (data.error === 'full') {
+      if (data.fields) for (const [k, v] of Object.entries(data.fields)) setError(k, v);
+      else if (data.error === 'full') {
         showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
         await loadAvailability();
-      } else {
-        showAlert(data.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
-      }
+      } else showAlert(data.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
       return;
     }
-    renderConfirm(data);
+    state.booking = data;
+    renderPayBox(state.booking);
+    state.slipFile = null;
+    $('slip-preview').style.display = 'none';
+    $('upload-label').classList.remove('has-file');
+    $('upload-slip').disabled = true;
     setStep(5);
-  } catch (err) {
+  } catch {
     showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
   } finally {
-    btn.disabled = false; btn.textContent = 'ยืนยันการจอง';
+    btn.disabled = false; btn.textContent = 'บันทึกการจอง';
   }
 };
 
-// ─── Step 5: confirmation ──────────────────────────────────
-function renderConfirm(b) {
-  $('conf-code').textContent = b.code;
-  const endHour = String(parseInt(b.time_slot, 10) + 1).padStart(2, '0') + ':00';
-  $('conf-summary').innerHTML = `
+// ─── Step 5: payment + slip ────────────────────────────────
+function renderPayBox(b) {
+  const bank = state.config.bank;
+  const total = bank.price_per_person * b.num_people;
+  $('pay-bank').textContent = bank.bank;
+  $('pay-name').textContent = bank.account_name;
+  $('pay-no').textContent = bank.account_number;
+  $('pay-total').textContent = fmtBaht(total);
+  $('pay-breakdown').textContent = `${b.num_people} คน × ${fmtBaht(bank.price_per_person)}/คน`;
+}
+
+function wireFilePicker(inputId, labelId, previewId, onPick) {
+  const input = $(inputId), label = $(labelId), preview = $(previewId);
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { showAlert('กรุณาเลือกไฟล์รูปภาพ'); input.value = ''; return; }
+    if (file.size > 5 * 1024 * 1024) { showAlert('ไฟล์ใหญ่เกิน 5MB'); input.value = ''; return; }
+    hideAlert();
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(file);
+    label.classList.add('has-file');
+    onPick(file);
+  };
+}
+
+wireFilePicker('f-slip', 'upload-label', 'slip-preview', (file) => {
+  state.slipFile = file;
+  $('upload-slip').disabled = false;
+});
+
+$('upload-slip').onclick = async () => {
+  if (!state.slipFile || !state.booking) return;
+  const btn = $('upload-slip');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const fd = new FormData();
+    fd.append('slip', state.slipFile);
+    fd.append('phone', state.booking.phone);
+    const res = await fetch(`/api/booking/${state.booking.id}/slip`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) { showAlert(data.message || 'อัปโหลดไม่สำเร็จ'); return; }
+    state.booking = data;
+    renderConfirm();
+    setStep(6);
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งสลิป';
+  }
+};
+
+$('skip-slip').onclick = () => {
+  renderConfirm();
+  setStep(6);
+};
+
+// ─── Step 6: confirmation/summary ──────────────────────────
+function renderStatusBlock(b, container) {
+  const s = STATUS_LABEL[b.payment_status] || STATUS_LABEL.pending;
+  let extra = '';
+  if (b.payment_status === 'verified' && b.code) {
+    extra = `
+      <div style="margin-top:10px; text-align:center;">
+        <div style="font-size:12px;">รหัสตั๋ว 6 หลัก</div>
+        <div class="ticket-code">${escapeHtml(b.code)}</div>
+        <div style="font-size:12px;">นำรหัสนี้มาแสดงในวันใช้สิทธิ์</div>
+      </div>`;
+  } else if (b.payment_status === 'rejected' && b.rejected_reason) {
+    extra = `<div style="margin-top:8px; font-size:13px;"><b>เหตุผล:</b> ${escapeHtml(b.rejected_reason)}</div>`;
+  }
+  let desc = '';
+  if (b.payment_status === 'pending')   desc = 'กรุณาโอนเงินตามรายละเอียดด้านล่าง แล้วกลับมาแนบสลิป';
+  if (b.payment_status === 'submitted') desc = 'ทางร้านได้รับสลิปแล้ว กรุณารอการตรวจสอบ (ปกติภายใน 24 ชม.)';
+  if (b.payment_status === 'verified')  desc = 'การชำระเงินได้รับการยืนยัน — ตั๋วของคุณพร้อมใช้งาน';
+  if (b.payment_status === 'rejected')  desc = 'สลิปไม่ผ่านการตรวจสอบ กรุณาแนบสลิปใหม่';
+
+  container.innerHTML = `
+    <div class="status-card ${s.cls}">
+      <div class="icon">${s.icon}</div>
+      <div class="title">${s.label}</div>
+      <div class="desc">${desc}</div>
+      ${extra}
+    </div>`;
+}
+
+function renderSummaryRows(b, container) {
+  container.innerHTML = `
     <div class="summary-row"><span class="label">ชื่อ - นามสกุล</span><span class="value">${escapeHtml(b.name)}</span></div>
-    <div class="summary-row"><span class="label">เบอร์โทรศัพท์</span><span class="value">${escapeHtml(b.phone)}</span></div>
+    <div class="summary-row"><span class="label">เบอร์โทร</span><span class="value">${escapeHtml(b.phone)}</span></div>
     <div class="summary-row"><span class="label">อีเมล</span><span class="value">${escapeHtml(b.email)}</span></div>
     <div class="summary-row"><span class="label">จำนวนคน</span><span class="value">${b.num_people} คน</span></div>
     <div class="summary-row"><span class="label">วันที่</span><span class="value">${fmtDateLong(b.booking_date)}</span></div>
-    <div class="summary-row"><span class="label">รอบเวลา</span><span class="value">${b.time_slot} - ${endHour}</span></div>
+    <div class="summary-row"><span class="label">รอบเวลา</span><span class="value">${fmtSlot(b.time_slot)}</span></div>
   `;
 }
 
+function renderConfirm() {
+  renderStatusBlock(state.booking, $('conf-status'));
+  renderSummaryRows(state.booking, $('conf-summary'));
+}
+
 $('new-booking').onclick = () => {
-  state.date = null;
-  state.time = null;
+  state.date = null; state.time = null; state.booking = null; state.slipFile = null;
   $('booking-form').reset();
+  $('f-slip').value = '';
   clearErrors();
   setStep(1);
 };
+$('goto-lookup').onclick = () => {
+  $$('.tab').forEach(t => { if (t.dataset.mode === 'lookup') t.click(); });
+  if (state.booking?.phone) { $('lk-phone').value = state.booking.phone; $('lookup-form').requestSubmit(); }
+};
 
-// ─── Back buttons ──────────────────────────────────────────
-document.querySelectorAll('[data-back]').forEach(b => {
-  b.onclick = () => setStep(state.step - 1);
+// Back buttons
+$$('#view-new [data-back]').forEach(b => b.onclick = () => setStep(state.step - 1));
+
+// ═════════ LOOKUP FLOW ═════════
+function showLstep(name) {
+  $$('#view-lookup .step').forEach(el => el.classList.remove('active'));
+  document.querySelector(`#view-lookup .step[data-lstep="${name}"]`).classList.add('active');
+}
+
+$('lookup-form').onsubmit = async (e) => {
+  e.preventDefault();
+  clearErrors(); hideAlert();
+  const phone = $('lk-phone').value.trim();
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('lk-phone', 'เบอร์โทรไม่ถูกต้อง'); return; }
+  const btn = $('lookup-btn'); btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
+  try {
+    if (!state.config) state.config = await fetch('/api/config').then(r => r.json());
+    const res = await fetch(`/api/booking/lookup?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json();
+    state.lkPhone = phone;
+    state.lkBookings = data.bookings || [];
+    if (!state.lkBookings.length) {
+      showAlert('ไม่พบการจองสำหรับเบอร์โทรนี้');
+      return;
+    }
+    renderLkList();
+    showLstep('list');
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ค้นหาการจอง';
+  }
+};
+
+function renderLkList() {
+  const root = $('lk-bookings');
+  root.innerHTML = '';
+  for (const b of state.lkBookings) {
+    const s = STATUS_LABEL[b.payment_status] || STATUS_LABEL.pending;
+    const card = document.createElement('div');
+    card.className = 'booking-card';
+    card.style.cursor = 'pointer';
+    card.innerHTML = `
+      <div class="booking-card-head">
+        <div>
+          <div class="booking-card-title">${fmtDateLong(b.booking_date)}</div>
+          <div class="booking-card-meta">${fmtSlot(b.time_slot)} · ${b.num_people} คน</div>
+        </div>
+        <span class="badge ${s.badge}">${s.label}</span>
+      </div>
+      <div style="font-size:12px; color:var(--muted);">${escapeHtml(b.name)}</div>
+    `;
+    card.onclick = () => { state.lkCurrent = b; renderLkDetail(); showLstep('detail'); };
+    root.appendChild(card);
+  }
+}
+
+$('lk-back-phone').onclick = () => { state.lkBookings = []; showLstep('phone'); };
+$('lk-back-list').onclick = () => { showLstep('list'); };
+
+function renderLkDetail() {
+  const b = state.lkCurrent;
+  renderStatusBlock(b, $('lk-detail-status'));
+  renderSummaryRows(b, $('lk-detail-summary'));
+
+  // Show pay/upload section if not verified
+  const paySection = $('lk-pay-section');
+  if (b.payment_status === 'verified') {
+    paySection.style.display = 'none';
+  } else {
+    paySection.style.display = 'block';
+    const bank = state.config.bank;
+    $('lk-pay-bank').textContent = bank.bank;
+    $('lk-pay-name').textContent = bank.account_name;
+    $('lk-pay-no').textContent = bank.account_number;
+    $('lk-pay-total').textContent = fmtBaht(bank.price_per_person * b.num_people);
+    $('lk-slip').value = '';
+    $('lk-slip-preview').style.display = 'none';
+    $('lk-upload-label').classList.remove('has-file');
+    $('lk-upload-slip').disabled = true;
+    state.lkSlipFile = null;
+  }
+}
+
+wireFilePicker('lk-slip', 'lk-upload-label', 'lk-slip-preview', (file) => {
+  state.lkSlipFile = file;
+  $('lk-upload-slip').disabled = false;
 });
 
-// ─── Helpers ───────────────────────────────────────────────
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
-  }[c]));
-}
+$('lk-upload-slip').onclick = async () => {
+  if (!state.lkSlipFile || !state.lkCurrent) return;
+  const btn = $('lk-upload-slip');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const fd = new FormData();
+    fd.append('slip', state.lkSlipFile);
+    fd.append('phone', state.lkCurrent.phone);
+    const res = await fetch(`/api/booking/${state.lkCurrent.id}/slip`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) { showAlert(data.message || 'อัปโหลดไม่สำเร็จ'); return; }
+    state.lkCurrent = data;
+    // Refresh list too
+    const idx = state.lkBookings.findIndex(x => x.id === data.id);
+    if (idx >= 0) state.lkBookings[idx] = data;
+    renderLkDetail();
+    showAlert('ส่งสลิปเรียบร้อย รอการตรวจสอบ', 'success');
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งสลิป';
+  }
+};
 
 updatePeople();
 </script>
