@@ -19,9 +19,9 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const BANK_INFO = {
   bank: process.env.BANK_NAME || 'ธนาคารไทยพาณิชย์ (SCB)',
-  account_name: process.env.BANK_ACCOUNT_NAME || 'ร้านทุเรียนบุฟเฟ่ต์',
+  account_name: process.env.BANK_ACCOUNT_NAME || 'สถานีทุเรียนไอยรา',
   account_number: process.env.BANK_ACCOUNT_NUMBER || '161-5-xxxxx-x',
-  price_per_person: Number(process.env.PRICE_PER_PERSON || 599),
+  price_per_person: Number(process.env.PRICE_PER_PERSON || 199),
 };
 
 const SLOT_CAPACITY = 100;

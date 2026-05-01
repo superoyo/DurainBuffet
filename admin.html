@@ -3,20 +3,26 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>หลังบ้าน — ทุเรียนบุฟเฟ่ต์</title>
+<title>หลังบ้าน — สถานีทุเรียนไอยรา</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --primary: #f59e0b;
-    --primary-dark: #d97706;
-    --accent: #10b981;
-    --info: #3b82f6;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-    --bg: #f9fafb;
+    --brand-red:       #B91C1C;
+    --brand-red-dark:  #7F1D1D;
+    --brand-gold:      #FCD34D;
+    --brand-gold-deep: #F59E0B;
+    --brand-gold-dark: #B45309;
+    --brand-cream:     #FEF3C7;
+    --primary: #B91C1C;
+    --primary-dark: #7F1D1D;
+    --accent: #16A34A;
+    --info: #2563EB;
+    --danger: #DC2626;
+    --warning: #F59E0B;
+    --text: #3B1A0E;
+    --muted: #78350F;
+    --border: #FDE68A;
+    --bg: #FFFBEB;
   }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", "Noto Sans Thai", sans-serif;
@@ -29,37 +35,46 @@
   .login-wrap {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #92400e 100%);
+    background:
+      radial-gradient(circle at 20% 0%, rgba(252, 211, 77, 0.5) 0%, transparent 50%),
+      linear-gradient(135deg, #B91C1C 0%, #7F1D1D 50%, #5B0F0F 100%);
     padding: 24px;
   }
   .login-card {
     background: #fff; border-radius: 20px;
     padding: 40px; width: 100%; max-width: 400px;
-    box-shadow: 0 25px 60px rgba(146, 64, 14, 0.35);
+    box-shadow: 0 25px 60px rgba(91, 15, 15, 0.4);
+    border: 2px solid var(--brand-gold);
   }
-  .login-card h1 { font-size: 22px; margin-bottom: 4px; }
+  .login-card h1 { font-size: 22px; margin-bottom: 4px; color: var(--brand-red-dark); }
   .login-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
 
   /* ─── App layout ───────────────────────────────────────── */
   .topbar {
-    background: #fff; border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    border-bottom: 3px solid var(--brand-gold);
     padding: 14px 24px;
     display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; z-index: 10;
+    color: var(--brand-gold);
+    box-shadow: 0 4px 14px rgba(91, 15, 15, 0.25);
   }
-  .topbar .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+  .topbar .brand { display: flex; gap: 10px; align-items: center; font-weight: 800; color: var(--brand-gold); }
   .brand-icon {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: linear-gradient(135deg, #fbbf24, #d97706);
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--brand-gold);
     display: flex; align-items: center; justify-content: center;
     font-size: 18px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.1);
   }
   .topbar button {
-    background: transparent; border: 1px solid var(--border);
+    background: rgba(252, 211, 77, 0.15);
+    border: 1px solid var(--brand-gold);
+    color: var(--brand-gold);
     padding: 8px 14px; border-radius: 8px;
-    cursor: pointer; font-family: inherit; font-size: 13px;
+    cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
   }
-  .topbar button:hover { background: var(--bg); }
+  .topbar button:hover { background: var(--brand-gold); color: var(--brand-red-dark); }
 
   .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
 
@@ -75,17 +90,25 @@
 
   .btn {
     padding: 10px 14px; border: none; border-radius: 8px;
-    font-size: 13px; font-weight: 600; font-family: inherit;
+    font-size: 13px; font-weight: 700; font-family: inherit;
     cursor: pointer; transition: all 0.15s;
     white-space: nowrap;
   }
-  .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; }
-  .btn-primary:hover { background: var(--primary-dark); }
-  .btn-accent { background: var(--accent); color: #fff; }
-  .btn-accent:hover { filter: brightness(0.95); }
-  .btn-info   { background: var(--info); color: #fff; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: var(--brand-gold);
+    width: 100%; padding: 14px;
+    box-shadow: 0 4px 12px rgba(127,29,29,0.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(127,29,29,0.4); }
+  .btn-accent { background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); color: #fff; }
+  .btn-accent:hover { filter: brightness(1.05); }
+  .btn-info   { background: linear-gradient(135deg, var(--brand-gold-deep) 0%, var(--brand-gold-dark) 100%); color: #fff; }
+  .btn-info:hover { filter: brightness(1.05); }
   .btn-ghost  { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-  .btn-danger { background: #fee2e2; color: var(--danger); }
+  .btn-ghost:hover { background: var(--brand-cream); }
+  .btn-danger { background: #FEE2E2; color: var(--danger); border: 1px solid #FCA5A5; }
+  .btn-danger:hover { background: #FECACA; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
   .alert { padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 12px; }
@@ -93,24 +116,27 @@
   .alert.success { background: #d1fae5; color: #065f46; }
 
   /* ─── Overview ─────────────────────────────────────────── */
-  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: var(--brand-red-dark); }
   .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
 
   .day-block {
-    background: #fff; border: 1px solid var(--border);
+    background: #fff;
+    border: 1px solid var(--border);
     border-radius: 14px; padding: 18px;
     margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(180, 83, 9, 0.06);
   }
   .day-header {
     display: flex; align-items: baseline; justify-content: space-between;
     margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
   }
-  .day-title { font-size: 16px; font-weight: 700; }
-  .day-summary { font-size: 12px; color: var(--muted); }
+  .day-title { font-size: 16px; font-weight: 800; color: var(--brand-red-dark); }
+  .day-summary { font-size: 12px; color: var(--muted); font-weight: 600; }
   .pending-pill {
-    background: #fef3c7; color: #92400e;
-    padding: 2px 10px; border-radius: 999px;
-    font-size: 11px; font-weight: 600;
+    background: linear-gradient(135deg, var(--brand-gold-deep) 0%, var(--brand-gold-dark) 100%);
+    color: #fff;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
     margin-left: 6px;
   }
 
@@ -120,28 +146,42 @@
     gap: 8px;
   }
   .slot-tile {
-    border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 12px; cursor: pointer; background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px; cursor: pointer;
+    background: #fff;
     transition: all 0.15s;
     display: flex; flex-direction: column; gap: 2px;
     position: relative;
   }
-  .slot-tile:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
-  .slot-tile.full { background: #fef2f2; border-color: #fecaca; }
+  .slot-tile:hover {
+    border-color: var(--brand-red);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(127, 29, 29, 0.15);
+  }
+  .slot-tile.full { background: #FEF2F2; border-color: #FCA5A5; }
   .slot-tile.empty { opacity: 0.6; }
-  .slot-tile.has-pending { border-color: #fbbf24; background: #fffbeb; }
-  .slot-tile-time { font-weight: 700; font-size: 14px; }
+  .slot-tile.has-pending {
+    border-color: var(--brand-gold-deep);
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  }
+  .slot-tile-time { font-weight: 800; font-size: 14px; color: var(--brand-red-dark); }
   .slot-tile-meta { font-size: 11px; color: var(--muted); }
   .slot-tile-bar {
     height: 4px; background: var(--border); border-radius: 2px;
     margin-top: 4px; overflow: hidden;
   }
-  .slot-tile-bar-fill { height: 100%; background: var(--primary); }
+  .slot-tile-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--brand-gold-deep) 0%, var(--brand-red) 100%);
+  }
   .slot-tile-pending {
     position: absolute; top: 6px; right: 6px;
-    background: #f59e0b; color: #fff;
-    font-size: 10px; font-weight: 700;
-    padding: 1px 6px; border-radius: 999px;
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: var(--brand-gold);
+    font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(127,29,29,0.3);
   }
 
   /* ─── Slot detail ──────────────────────────────────────── */
@@ -159,35 +199,47 @@
   .stat {
     background: #fff; border: 1px solid var(--border);
     border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 2px 6px rgba(180,83,9,0.06);
   }
-  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
-  .stat .small { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+  .stat-value { font-size: 24px; font-weight: 800; margin-top: 2px; color: var(--brand-red-dark); }
+  .stat .small { font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 500; }
 
   .table-wrap {
     background: #fff; border: 1px solid var(--border);
     border-radius: 12px; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(180,83,9,0.06);
   }
   table { width: 100%; border-collapse: collapse; }
   th, td { padding: 12px 14px; text-align: left; font-size: 14px; vertical-align: middle; }
-  th { background: var(--bg); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  th {
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    font-weight: 700; font-size: 11px;
+    color: var(--brand-gold);
+    text-transform: uppercase; letter-spacing: 0.7px;
+  }
   tr { border-top: 1px solid var(--border); }
   tr:first-child { border-top: 0; }
-  tr.used { background: #f0fdf4; }
-  tr.rejected { background: #fef2f2; opacity: 0.7; }
+  tr.used { background: #F0FDF4; }
+  tr.rejected { background: #FEF2F2; opacity: 0.7; }
   .code-cell {
     font-family: ui-monospace, "SF Mono", monospace;
-    font-weight: 700; letter-spacing: 1px;
+    font-weight: 800; letter-spacing: 2px;
+    color: var(--brand-red-dark);
+    background: var(--brand-cream);
+    padding: 4px 10px; border-radius: 6px;
+    border: 1px dashed var(--brand-gold-deep);
+    display: inline-block;
   }
   .badge {
-    display: inline-block; padding: 2px 8px;
-    border-radius: 999px; font-size: 11px; font-weight: 600;
+    display: inline-block; padding: 3px 9px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
   }
-  .badge.pending     { background: #fef3c7; color: #92400e; }
-  .badge.submitted   { background: #dbeafe; color: #1e40af; }
-  .badge.verified    { background: #d1fae5; color: #065f46; }
-  .badge.rejected    { background: #fee2e2; color: #991b1b; }
-  .badge.used        { background: #e0e7ff; color: #3730a3; }
+  .badge.pending     { background: #FEF3C7; color: var(--brand-gold-dark); border: 1px solid var(--brand-gold-deep); }
+  .badge.submitted   { background: #FFEDD5; color: var(--brand-red-dark); border: 1px solid #FB923C; }
+  .badge.verified    { background: #DCFCE7; color: #14532D; border: 1px solid #16A34A; }
+  .badge.rejected    { background: #FEE2E2; color: #7F1D1D; border: 1px solid #DC2626; }
+  .badge.used        { background: #E0E7FF; color: #3730A3; border: 1px solid #6366F1; }
   .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
   .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
@@ -206,10 +258,13 @@
     overflow: hidden;
   }
   .modal-head {
-    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: var(--brand-gold);
     display: flex; justify-content: space-between; align-items: center;
   }
-  .modal-title { font-size: 16px; font-weight: 700; }
+  .modal-title { font-size: 16px; font-weight: 800; color: var(--brand-gold); }
+  .modal-close { color: var(--brand-gold); }
   .modal-close {
     background: transparent; border: none;
     font-size: 24px; cursor: pointer; color: var(--muted);
@@ -240,10 +295,10 @@
   <div id="login-view" class="login-wrap">
     <div class="login-card">
       <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
-        <div class="brand-icon">🥭</div>
+        <div class="brand-icon" style="background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%); color: var(--brand-gold); width:44px; height:44px; border-radius:12px;">🚂</div>
         <div>
-          <h1>หลังบ้าน</h1>
-          <div class="sub">ระบบจัดการการจอง</div>
+          <h1>สถานีทุเรียนไอยรา</h1>
+          <div class="sub">ระบบจัดการหลังบ้าน</div>
         </div>
       </div>
       <div id="login-alert" class="alert error" style="display:none"></div>
@@ -268,8 +323,8 @@
   <div id="app-view" style="display:none;">
     <div class="topbar">
       <div class="brand">
-        <div class="brand-icon">🥭</div>
-        <div>หลังบ้าน · ทุเรียนบุฟเฟ่ต์</div>
+        <div class="brand-icon">🚂</div>
+        <div>สถานีทุเรียนไอยรา · หลังบ้าน</div>
       </div>
       <button id="logout-btn">ออกจากระบบ</button>
     </div>
@@ -278,7 +333,7 @@
       <!-- Overview -->
       <div id="overview-view">
         <div class="page-title">ภาพรวมการจอง</div>
-        <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · รอบละ 100 คน · กดที่รอบเพื่อดูรายละเอียด</div>
+        <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · 199 บาท/รอบ · รอบละ 100 คน · กดที่รอบเพื่อดูรายละเอียด</div>
         <div id="overview-content"></div>
       </div>
 
