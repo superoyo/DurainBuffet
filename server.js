@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const DATA_DIR = process.env.DATA_DIR || __dirname;
+const USING_DEFAULT_DATA_DIR = !process.env.DATA_DIR;
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_PATH = path.join(DATA_DIR, 'bookings.db');
 
@@ -268,7 +269,14 @@ app.post('/api/admin/bookings/:id/unuse', requireAdmin, (req, res) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
-  console.log(`Durian buffet booking server running on http://localhost:${PORT}`);
-  console.log(`Admin panel: http://localhost:${PORT}/admin.html  (user: ${ADMIN_USER})`);
+  console.log(`Durian buffet booking server running on port ${PORT}`);
+  console.log(`Admin user: ${ADMIN_USER}`);
   console.log(`Database: ${DB_PATH}`);
+  if (USING_DEFAULT_DATA_DIR && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️  DATA_DIR is not set — DB will live inside the ephemeral container and be lost on every redeploy.');
+    console.warn('   On Railway: attach a Volume (mount path e.g. /data) and set env var DATA_DIR=/data');
+  }
+  if (process.env.NODE_ENV === 'production' && ADMIN_PASS === 'admin123') {
+    console.warn('⚠️  ADMIN_PASS is using the default value. Set ADMIN_USER and ADMIN_PASS env vars in production.');
+  }
 });
