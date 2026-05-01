@@ -1,7 +1,7 @@
 {
-  "name": "registration-survey",
+  "name": "durian-buffet-booking",
   "version": "1.0.0",
-  "description": "Registration form with backend API",
+  "description": "Durian buffet reservation system with admin panel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

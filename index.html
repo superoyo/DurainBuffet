@@ -3,562 +3,527 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>แบบฟอร์มลงทะเบียน</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+<title>จองทุเรียนบุฟเฟ่ต์</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #f59e0b;
+    --primary-dark: #d97706;
+    --accent: #10b981;
+    --danger: #ef4444;
+    --bg-grad: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #92400e 100%);
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --surface: #fff;
+    --bg: #fffbeb;
+  }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", sans-serif;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", "Noto Sans Thai", sans-serif;
+    background: var(--bg-grad);
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 20px;
+    padding: 24px 16px;
+    color: var(--text);
   }
   .card {
-    background: #fff;
-    border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    padding: 40px;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: 0 25px 60px rgba(146, 64, 14, 0.35);
+    padding: 32px;
     width: 100%;
-    max-width: 480px;
+    max-width: 640px;
   }
-  h1 {
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 24px;
-  }
-  .subtitle {
-    color: #777;
-    margin-bottom: 24px;
-    font-size: 14px;
-  }
-
-  .progress {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 28px;
-  }
-  .progress-step {
-    flex: 1;
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 3px;
-    transition: background 0.3s;
-  }
-  .progress-step.active { background: linear-gradient(90deg, #22c55e, #16a34a); }
-  .progress-text {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 12px;
-    text-align: right;
-  }
-
-  .step { display: none; animation: slideIn 0.3s ease-out; }
-  .step.active { display: block; }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .step-question {
-    font-size: 20px;
-    color: #1f2937;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  .step-hint {
-    color: #6b7280;
-    font-size: 14px;
-    margin-bottom: 20px;
-  }
-
-  input {
-    width: 100%;
-    padding: 14px 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.2s;
-    font-family: inherit;
-    background: #fff;
-  }
-  input:focus {
-    outline: none;
-    border-color: #16a34a;
-  }
-  input[readonly] { cursor: pointer; background: #fafbfc; }
-
-  .age-display {
-    margin-top: 12px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    border-radius: 8px;
-    text-align: center;
-    color: #15803d;
-    font-weight: 600;
-    display: none;
-  }
-  .age-display.show { display: block; animation: fadeIn 0.3s; }
-  .age-number { font-size: 28px; color: #16a34a; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  .error {
-    color: #e53935;
-    font-size: 13px;
-    margin-top: 6px;
-    min-height: 18px;
-  }
-
-  .btn-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 28px;
-  }
-  button {
-    flex: 1;
-    padding: 14px;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
-    font-family: inherit;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: #fff;
-  }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-secondary {
-    background: #f0f0f0;
-    color: #444;
-  }
-  button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-
-  .report-link {
-    display: block;
-    text-align: center;
-    margin-top: 18px;
-    color: #16a34a;
-    text-decoration: none;
-    font-size: 14px;
-  }
-  .report-link:hover { text-decoration: underline; }
-
-  .success { text-align: center; padding: 20px 0; }
-  .success-icon {
-    width: 72px; height: 72px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    background: #10b981;
-    color: #fff;
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .brand-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
     display: flex; align-items: center; justify-content: center;
-    font-size: 40px;
+    font-size: 22px;
   }
-  .success h2 { color: #1f2937; margin-bottom: 8px; }
-  .success p { color: #6b7280; margin-bottom: 24px; }
+  h1 { font-size: 22px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 28px; }
+  .progress-step {
+    flex: 1; height: 6px; border-radius: 3px;
+    background: var(--border); transition: background 0.3s;
+  }
+  .progress-step.active { background: var(--primary); }
+  .progress-step.done { background: var(--accent); }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-title { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .step-hint { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+
+  /* People selector */
+  .people-counter {
+    display: flex; align-items: center; justify-content: center;
+    gap: 24px; margin: 20px 0;
+  }
+  .counter-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2px solid var(--primary); background: var(--surface);
+    color: var(--primary); font-size: 28px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .counter-btn:hover:not(:disabled) { background: var(--primary); color: #fff; }
+  .counter-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .counter-value {
+    font-size: 48px; font-weight: 700; min-width: 80px; text-align: center;
+    color: var(--primary-dark);
+  }
+  .counter-label { text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* Date grid */
+  .date-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-bottom: 8px;
+  }
+  .date-card {
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 12px 8px; text-align: center; cursor: pointer;
+    background: var(--surface); transition: all 0.15s;
+  }
+  .date-card:hover:not(.disabled) { border-color: var(--primary); transform: translateY(-1px); }
+  .date-card.selected { border-color: var(--primary); background: #fef3c7; }
+  .date-card.disabled { opacity: 0.4; cursor: not-allowed; background: #f9fafb; }
+  .date-day { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .date-num { font-size: 24px; font-weight: 700; margin: 2px 0; }
+  .date-month { font-size: 11px; color: var(--muted); }
+  .date-status { font-size: 10px; margin-top: 4px; color: var(--accent); }
+  .date-card.disabled .date-status { color: var(--danger); }
+
+  /* Slot grid */
+  .slot-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .slot-card {
+    border: 2px solid var(--border); border-radius: 12px;
+    padding: 12px; cursor: pointer; background: var(--surface);
+    transition: all 0.15s;
+  }
+  .slot-card:hover:not(.disabled) { border-color: var(--primary); transform: translateY(-1px); }
+  .slot-card.selected { border-color: var(--primary); background: #fef3c7; }
+  .slot-card.disabled { opacity: 0.4; cursor: not-allowed; background: #f9fafb; }
+  .slot-time { font-size: 16px; font-weight: 700; }
+  .slot-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .slot-card.disabled .slot-meta { color: var(--danger); }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .field input {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: inherit;
+    transition: border 0.15s;
+  }
+  .field input:focus { outline: none; border-color: var(--primary); }
+  .field .err { color: var(--danger); font-size: 12px; margin-top: 4px; min-height: 14px; }
+
+  /* Summary */
   .summary {
-    background: #f9fafb;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-    text-align: left;
+    background: var(--bg); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px; border: 1px dashed #fbbf24;
   }
-  .summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 14px;
-  }
-  .summary-row:last-child { border-bottom: none; }
-  .summary-label { color: #6b7280; }
-  .summary-value { color: #1f2937; font-weight: 500; }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+  .summary-row .label { color: var(--muted); }
+  .summary-row .value { font-weight: 600; }
 
-  .toast {
-    position: fixed;
-    top: 20px; right: 20px;
-    background: #4caf50;
-    color: #fff;
-    padding: 14px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    transform: translateX(150%);
-    transition: transform 0.3s;
-    z-index: 100;
+  .confirm-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 2px solid var(--accent); border-radius: 16px;
+    padding: 24px; text-align: center; margin-bottom: 16px;
   }
-  .toast.show { transform: translateX(0); }
+  .confirm-icon { font-size: 48px; margin-bottom: 8px; }
+  .confirm-code {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 32px; letter-spacing: 6px; font-weight: 700;
+    color: var(--primary-dark); background: #fff;
+    padding: 12px 20px; border-radius: 12px;
+    display: inline-block; margin: 12px 0;
+    border: 2px dashed var(--primary);
+  }
 
-  /* Flatpickr customization */
-  .flatpickr-calendar { font-family: inherit; }
+  /* Buttons */
+  .actions { display: flex; gap: 10px; margin-top: 20px; }
+  .btn {
+    flex: 1; padding: 14px;
+    border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--border); color: var(--text); }
+  .btn-secondary:hover { background: #d1d5db; }
+
+  .alert {
+    padding: 12px; border-radius: 10px; font-size: 13px;
+    margin-bottom: 16px; display: none;
+  }
+  .alert.error { background: #fee2e2; color: #991b1b; display: block; }
+
+  .empty { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 14px; }
+
+  .admin-link {
+    text-align: center; margin-top: 16px;
+    font-size: 12px;
+  }
+  .admin-link a { color: var(--muted); text-decoration: none; }
+  .admin-link a:hover { color: var(--primary-dark); }
+
+  @media (max-width: 480px) {
+    .card { padding: 24px 20px; }
+    .counter-value { font-size: 40px; }
+    .confirm-code { font-size: 26px; letter-spacing: 4px; }
+  }
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>แบบฟอร์มลงทะเบียน</h1>
-    <p class="subtitle">กรุณากรอกข้อมูลทีละขั้นตอน</p>
-
-    <div class="progress-text" id="progressText">ขั้นตอนที่ 1 จาก 4</div>
-    <div class="progress">
-      <div class="progress-step active" data-step="1"></div>
-      <div class="progress-step" data-step="2"></div>
-      <div class="progress-step" data-step="3"></div>
-      <div class="progress-step" data-step="4"></div>
+    <div class="brand">
+      <div class="brand-icon">🥭</div>
+      <div>
+        <h1>จองทุเรียนบุฟเฟ่ต์</h1>
+        <div class="subtitle">เทศกาลทุเรียน 15-24 พฤษภาคม 2569</div>
+      </div>
     </div>
 
-    <form id="regForm" novalidate>
-      <!-- Step 1: Date of Birth -->
-      <div class="step active" data-step="1">
-        <div class="step-question">วันเกิดของคุณละ?</div>
-        <div class="step-hint">เลือกวันเกิดเพื่อคำนวณอายุของคุณ</div>
-        <input type="text" id="dob" name="dob" placeholder="คลิกเพื่อเลือกวันเกิด" readonly />
-        <div class="error" id="err-dob"></div>
-        <div class="age-display" id="ageDisplay">
-          อายุของคุณคือ <span class="age-number" id="ageNumber">0</span> ปี
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
-      </div>
+    <div class="progress">
+      <div class="progress-step active" id="ps-1"></div>
+      <div class="progress-step" id="ps-2"></div>
+      <div class="progress-step" id="ps-3"></div>
+      <div class="progress-step" id="ps-4"></div>
+      <div class="progress-step" id="ps-5"></div>
+    </div>
 
-      <!-- Step 2: Name -->
-      <div class="step" data-step="2">
-        <div class="step-question">คุณชื่ออะไร?</div>
-        <div class="step-hint">กรุณากรอกชื่อ-นามสกุลของคุณ</div>
-        <input type="text" id="name" name="name" placeholder="เช่น สมชาย ใจดี" autocomplete="name" />
-        <div class="error" id="err-name"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
-      </div>
+    <div id="alert" class="alert"></div>
 
-      <!-- Step 3: Email -->
-      <div class="step" data-step="3">
-        <div class="step-question">อีเมลของคุณคือ?</div>
-        <div class="step-hint">เราจะใช้อีเมลนี้ในการติดต่อกลับ</div>
-        <input type="email" id="email" name="email" placeholder="example@email.com" autocomplete="email" />
-        <div class="error" id="err-email"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
+    <!-- Step 1: People -->
+    <div class="step active" id="step-1">
+      <div class="step-title">เลือกจำนวนคน</div>
+      <div class="step-hint">รอบละไม่เกิน 100 คน</div>
+      <div class="people-counter">
+        <button class="counter-btn" id="dec-people">−</button>
+        <div class="counter-value" id="people-value">2</div>
+        <button class="counter-btn" id="inc-people">+</button>
       </div>
-
-      <!-- Step 4: Phone -->
-      <div class="step" data-step="4">
-        <div class="step-question">เบอร์โทรศัพท์ของคุณ?</div>
-        <div class="step-hint">เพื่อการติดต่อสื่อสารที่รวดเร็ว</div>
-        <input type="tel" id="phone" name="phone" placeholder="08X-XXX-XXXX" autocomplete="tel" />
-        <div class="error" id="err-phone"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="submit" class="btn-primary">ลงทะเบียน ✓</button>
-        </div>
+      <div class="counter-label">คน</div>
+      <div class="actions">
+        <button class="btn btn-primary" id="next-1">ถัดไป</button>
       </div>
+    </div>
 
-      <!-- Step 5: Success -->
-      <div class="step" data-step="5">
-        <div class="success">
-          <div class="success-icon">✓</div>
-          <h2>ลงทะเบียนสำเร็จ!</h2>
-          <p>ขอบคุณที่ลงทะเบียนกับเรา</p>
-          <div class="summary" id="summary"></div>
-          <div class="btn-row">
-            <button type="button" class="btn-secondary" data-action="restart">ลงทะเบียนใหม่</button>
-            <a href="report.html" style="flex:1;text-decoration:none;">
-              <button type="button" class="btn-primary" style="width:100%;">ดูรายงาน</button>
-            </a>
-          </div>
-        </div>
+    <!-- Step 2: Date -->
+    <div class="step" id="step-2">
+      <div class="step-title">เลือกวันที่</div>
+      <div class="step-hint">เฉพาะวันที่มีรอบว่างสำหรับ <span id="hint-people">2</span> คน</div>
+      <div class="date-grid" id="date-grid"></div>
+      <div class="actions">
+        <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+        <button class="btn btn-primary" id="next-2" disabled>ถัดไป</button>
       </div>
-    </form>
+    </div>
 
-    <a href="report.html" class="report-link" id="reportLink">ดูรายชื่อผู้ลงทะเบียนทั้งหมด →</a>
+    <!-- Step 3: Time -->
+    <div class="step" id="step-3">
+      <div class="step-title">เลือกรอบเวลา</div>
+      <div class="step-hint" id="time-hint">รอบละ 1 ชั่วโมง</div>
+      <div class="slot-grid" id="slot-grid"></div>
+      <div class="actions">
+        <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+        <button class="btn btn-primary" id="next-3" disabled>ถัดไป</button>
+      </div>
+    </div>
+
+    <!-- Step 4: Form -->
+    <div class="step" id="step-4">
+      <div class="step-title">กรอกข้อมูลผู้จอง</div>
+      <div class="step-hint" id="form-hint"></div>
+      <form id="booking-form" novalidate>
+        <div class="field">
+          <label for="f-name">ชื่อ - นามสกุล</label>
+          <input type="text" id="f-name" autocomplete="name" required />
+          <div class="err" data-err="name"></div>
+        </div>
+        <div class="field">
+          <label for="f-phone">เบอร์โทรศัพท์</label>
+          <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+          <div class="err" data-err="phone"></div>
+        </div>
+        <div class="field">
+          <label for="f-email">อีเมล</label>
+          <input type="email" id="f-email" autocomplete="email" placeholder="you@example.com" required />
+          <div class="err" data-err="email"></div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-secondary" data-back>ย้อนกลับ</button>
+          <button type="submit" class="btn btn-primary" id="submit-booking">ยืนยันการจอง</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 5: Confirmation -->
+    <div class="step" id="step-5">
+      <div class="confirm-card">
+        <div class="confirm-icon">✅</div>
+        <div style="font-size:18px; font-weight:600; color:#065f46;">จองสำเร็จ!</div>
+        <div style="font-size:13px; color:#047857; margin-top:4px;">กรุณาบันทึกรหัสนี้เพื่อแสดงในวันใช้สิทธิ์</div>
+        <div class="confirm-code" id="conf-code">------</div>
+        <div style="font-size:12px; color:var(--muted);">รหัสยืนยัน 6 หลัก</div>
+      </div>
+      <div class="summary" id="conf-summary"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="new-booking">จองรอบใหม่</button>
+      </div>
+    </div>
+
+    <div class="admin-link"><a href="/admin.html">เข้าสู่ระบบหลังบ้าน →</a></div>
   </div>
 
-  <div class="toast" id="toast">บันทึกข้อมูลเรียบร้อย</div>
-
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
 <script>
-  const API_BASE = '/api';
-  const form = document.getElementById('regForm');
-  const toast = document.getElementById('toast');
-  const progressText = document.getElementById('progressText');
-  const progressSteps = document.querySelectorAll('.progress-step');
-  const reportLink = document.getElementById('reportLink');
-  const ageDisplay = document.getElementById('ageDisplay');
-  const ageNumber = document.getElementById('ageNumber');
+const TH_MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MONTH_LONG  = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_DAY_SHORT   = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
 
-  let currentStep = 1;
-  const TOTAL_STEPS = 4;
-  let selectedDob = null;
+const state = {
+  step: 1,
+  people: 2,
+  date: null,
+  time: null,
+  config: null,
+  availability: null,
+};
 
-  // Initialize flatpickr (popular, lightweight, mobile-friendly date picker)
-  const today = new Date();
-  const maxDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-  const minDate = new Date(today.getFullYear() - 120, 0, 1);
+const $ = id => document.getElementById(id);
 
-  const fp = flatpickr('#dob', {
-    locale: 'th',
-    dateFormat: 'd M Y',
-    maxDate: maxDate,
-    minDate: minDate,
-    defaultDate: new Date(today.getFullYear() - 25, 0, 1),
-    disableMobile: false,
-    onChange: function(dates) {
-      if (dates.length === 0) return;
-      selectedDob = dates[0];
-      const age = calculateAge(selectedDob);
-      ageNumber.textContent = age;
-      ageDisplay.classList.add('show');
-      showError('dob', '');
-      document.getElementById('dob').style.borderColor = '#10b981';
+function setStep(n) {
+  state.step = n;
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+  $(`step-${n}`).classList.add('active');
+  for (let i = 1; i <= 5; i++) {
+    const ps = $(`ps-${i}`);
+    ps.classList.remove('active', 'done');
+    if (i < n) ps.classList.add('done');
+    else if (i === n) ps.classList.add('active');
+  }
+  hideAlert();
+}
+
+function showAlert(msg) {
+  const a = $('alert');
+  a.textContent = msg;
+  a.className = 'alert error';
+}
+function hideAlert() {
+  $('alert').className = 'alert';
+}
+
+function fmtDateLong(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return `${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+// ─── Step 1: people ────────────────────────────────────────
+function updatePeople() {
+  $('people-value').textContent = state.people;
+  $('hint-people').textContent = state.people;
+  $('dec-people').disabled = state.people <= 1;
+  $('inc-people').disabled = state.people >= 100;
+}
+$('inc-people').onclick = () => { if (state.people < 100) { state.people++; updatePeople(); } };
+$('dec-people').onclick = () => { if (state.people > 1)   { state.people--; updatePeople(); } };
+$('next-1').onclick = async () => {
+  await loadAvailability();
+  renderDates();
+  setStep(2);
+};
+
+// ─── Step 2: date ──────────────────────────────────────────
+async function loadAvailability() {
+  if (!state.config) {
+    const cfg = await fetch('/api/config').then(r => r.json());
+    state.config = cfg;
+  }
+  const av = await fetch(`/api/availability?people=${state.people}`).then(r => r.json());
+  state.availability = av;
+}
+
+function dateHasAvailableSlot(date) {
+  const slots = state.availability.slots[date];
+  return Object.values(slots).some(s => s.available);
+}
+
+function renderDates() {
+  const grid = $('date-grid');
+  grid.innerHTML = '';
+  const dates = state.config.dates;
+  for (const date of dates) {
+    const d = new Date(date + 'T00:00:00');
+    const has = dateHasAvailableSlot(date);
+    const card = document.createElement('div');
+    card.className = 'date-card' + (has ? '' : ' disabled') + (state.date === date ? ' selected' : '');
+    card.innerHTML = `
+      <div class="date-day">${TH_DAY_SHORT[d.getDay()]}</div>
+      <div class="date-num">${d.getDate()}</div>
+      <div class="date-month">${TH_MONTH_SHORT[d.getMonth()]}</div>
+      <div class="date-status">${has ? 'มีรอบว่าง' : 'เต็ม'}</div>
+    `;
+    if (has) {
+      card.onclick = () => {
+        state.date = date;
+        renderDates();
+        $('next-2').disabled = false;
+      };
     }
-  });
+    grid.appendChild(card);
+  }
+  $('next-2').disabled = !state.date || !dateHasAvailableSlot(state.date);
+}
 
-  function calculateAge(birthDate) {
-    const now = new Date();
-    let age = now.getFullYear() - birthDate.getFullYear();
-    const m = now.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
-    return age;
-  }
+$('next-2').onclick = () => {
+  renderSlots();
+  setStep(3);
+};
 
-  function fmtDob(date) {
-    return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-
-  function showError(field, msg) {
-    document.getElementById('err-' + field).textContent = msg;
-  }
-  function setBorder(field, color) {
-    form[field].style.borderColor = color || '';
-  }
-  function showToast(msg, color) {
-    toast.textContent = msg;
-    toast.style.background = color || '#4caf50';
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
-  }
-  function normalizePhone(p) {
-    return p.replace(/[\s\-+()]/g, '');
-  }
-
-  // Debounced async duplicate check via API
-  let checkTimer = null;
-  async function checkDuplicate(field, value) {
-    try {
-      const url = new URL(API_BASE + '/check', window.location.origin);
-      url.searchParams.set(field, value);
-      const res = await fetch(url);
-      if (!res.ok) return false;
-      const data = await res.json();
-      return field === 'email' ? data.emailExists : data.phoneExists;
-    } catch (err) {
-      console.error('check failed', err);
-      return false;
+// ─── Step 3: time ──────────────────────────────────────────
+function renderSlots() {
+  $('time-hint').textContent = `วันที่ ${fmtDateLong(state.date)} • รอบละ 1 ชั่วโมง`;
+  const grid = $('slot-grid');
+  grid.innerHTML = '';
+  const slots = state.availability.slots[state.date];
+  const slotKeys = state.config.slots;
+  for (const time of slotKeys) {
+    const info = slots[time];
+    const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (info.available ? '' : ' disabled') + (state.time === time ? ' selected' : '');
+    card.innerHTML = `
+      <div class="slot-time">${time} - ${endHour}</div>
+      <div class="slot-meta">${info.available ? `เหลือ ${info.remaining} ที่นั่ง` : 'เต็ม'}</div>
+    `;
+    if (info.available) {
+      card.onclick = () => {
+        state.time = time;
+        renderSlots();
+        $('next-3').disabled = false;
+      };
     }
+    grid.appendChild(card);
   }
-  function debouncedCheck(field, value, onResult) {
-    clearTimeout(checkTimer);
-    checkTimer = setTimeout(async () => {
-      const dup = await checkDuplicate(field, value);
-      onResult(dup);
-    }, 350);
-  }
+  $('next-3').disabled = !state.time || !slots[state.time]?.available;
+}
 
-  function gotoStep(n) {
-    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
-    currentStep = n;
+$('next-3').onclick = () => {
+  const endHour = String(parseInt(state.time, 10) + 1).padStart(2, '0') + ':00';
+  $('form-hint').textContent =
+    `${state.people} คน • ${fmtDateLong(state.date)} • ${state.time} - ${endHour}`;
+  setStep(4);
+};
 
-    if (n <= TOTAL_STEPS) {
-      progressText.textContent = `ขั้นตอนที่ ${n} จาก ${TOTAL_STEPS}`;
-      progressText.style.display = '';
-      document.querySelector('.progress').style.display = '';
-      progressSteps.forEach(el => {
-        const s = Number(el.dataset.step);
-        el.classList.toggle('active', s <= n);
-      });
-      reportLink.style.display = '';
-      const input = document.querySelector(`.step[data-step="${n}"] input:not([readonly])`);
-      if (input) setTimeout(() => input.focus(), 100);
-    } else {
-      progressText.style.display = 'none';
-      document.querySelector('.progress').style.display = 'none';
-      reportLink.style.display = 'none';
-    }
-  }
+// ─── Step 4: form ──────────────────────────────────────────
+function clearErrors() {
+  document.querySelectorAll('[data-err]').forEach(el => el.textContent = '');
+}
+function setError(field, msg) {
+  document.querySelector(`[data-err="${field}"]`).textContent = msg;
+}
 
-  async function validateStep(n) {
-    if (n === 1) {
-      if (!selectedDob) {
-        showError('dob', 'กรุณาเลือกวันเกิด');
-        setBorder('dob', '#ef4444');
-        return false;
-      }
-      const age = calculateAge(selectedDob);
-      if (age < 1 || age > 120) {
-        showError('dob', 'อายุไม่ถูกต้อง');
-        setBorder('dob', '#ef4444');
-        return false;
-      }
-      showError('dob', ''); setBorder('dob', '#10b981');
-      return true;
-    }
-    if (n === 2) {
-      const v = form.name.value.trim();
-      if (!v) { showError('name', 'กรุณากรอกชื่อ'); setBorder('name', '#ef4444'); return false; }
-      showError('name', ''); setBorder('name', '#10b981');
-      return true;
-    }
-    if (n === 3) {
-      const v = form.email.value.trim();
-      if (!v) { showError('email', 'กรุณากรอกอีเมล'); setBorder('email', '#ef4444'); return false; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-        showError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); setBorder('email', '#ef4444'); return false;
-      }
-      const dup = await checkDuplicate('email', v);
-      if (dup) {
-        showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); return false;
-      }
-      showError('email', ''); setBorder('email', '#10b981');
-      return true;
-    }
-    if (n === 4) {
-      const v = form.phone.value.trim();
-      if (!v) { showError('phone', 'กรุณากรอกเบอร์โทร'); setBorder('phone', '#ef4444'); return false; }
-      if (!/^[0-9\-+\s()]{9,15}$/.test(v)) {
-        showError('phone', 'เบอร์โทรไม่ถูกต้อง'); setBorder('phone', '#ef4444'); return false;
-      }
-      const dup = await checkDuplicate('phone', v);
-      if (dup) {
-        showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); return false;
-      }
-      showError('phone', ''); setBorder('phone', '#10b981');
-      return true;
-    }
-    return true;
-  }
+$('booking-form').onsubmit = async (e) => {
+  e.preventDefault();
+  clearErrors();
+  hideAlert();
 
-  // Realtime feedback on email/phone (debounced API check)
-  form.email.addEventListener('input', () => {
-    const v = form.email.value.trim();
-    if (!v) { showError('email', ''); setBorder('email', ''); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return;
-    debouncedCheck('email', v, (dup) => {
-      if (form.email.value.trim() !== v) return;
-      if (dup) { showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); }
-      else { showError('email', ''); setBorder('email', '#10b981'); }
+  const name  = $('f-name').value.trim();
+  const phone = $('f-phone').value.trim();
+  const email = $('f-email').value.trim();
+
+  let ok = true;
+  if (!name) { setError('name', 'กรุณากรอกชื่อ-นามสกุล'); ok = false; }
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('phone', 'เบอร์โทรไม่ถูกต้อง'); ok = false; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
+  if (!ok) return;
+
+  const btn = $('submit-booking');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  try {
+    const res = await fetch('/api/booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, phone, email,
+        num_people: state.people,
+        booking_date: state.date,
+        time_slot: state.time,
+      }),
     });
-  });
-  form.phone.addEventListener('input', () => {
-    const v = form.phone.value.trim();
-    if (!v) { showError('phone', ''); setBorder('phone', ''); return; }
-    if (!/^[0-9\-+\s()]{9,15}$/.test(v)) return;
-    debouncedCheck('phone', v, (dup) => {
-      if (form.phone.value.trim() !== v) return;
-      if (dup) { showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); }
-      else { showError('phone', ''); setBorder('phone', '#10b981'); }
-    });
-  });
-  form.name.addEventListener('input', () => {
-    if (form.name.value.trim()) { showError('name', ''); setBorder('name', ''); }
-  });
-
-  // Button handlers
-  form.addEventListener('click', async (e) => {
-    const action = e.target.dataset.action;
-    if (action === 'next') {
-      e.target.disabled = true;
-      const ok = await validateStep(currentStep);
-      e.target.disabled = false;
-      if (ok) gotoStep(currentStep + 1);
-    } else if (action === 'prev') {
-      gotoStep(currentStep - 1);
-    } else if (action === 'restart') {
-      form.reset();
-      fp.clear();
-      selectedDob = null;
-      ageDisplay.classList.remove('show');
-      ['dob','name','email','phone'].forEach(f => { showError(f, ''); setBorder(f, ''); });
-      gotoStep(1);
-    }
-  });
-
-  // Enter key advances
-  form.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter' && currentStep < TOTAL_STEPS) {
-      e.preventDefault();
-      if (await validateStep(currentStep)) gotoStep(currentStep + 1);
-    }
-  });
-
-  // Final submit — POST to API
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    for (let s = 1; s <= TOTAL_STEPS; s++) {
-      if (!(await validateStep(s))) { gotoStep(s); return; }
-    }
-
-    const submitBtn = form.querySelector('[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'กำลังบันทึก...';
-
-    const payload = {
-      dob: selectedDob.toISOString(),
-      age: calculateAge(selectedDob),
-      name: form.name.value.trim(),
-      email: form.email.value.trim(),
-      phone: form.phone.value.trim(),
-    };
-
-    try {
-      const res = await fetch(API_BASE + '/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.status === 201) {
-        document.getElementById('summary').innerHTML = `
-          <div class="summary-row"><span class="summary-label">วันเกิด</span><span class="summary-value">${fmtDob(selectedDob)}</span></div>
-          <div class="summary-row"><span class="summary-label">อายุ</span><span class="summary-value">${payload.age} ปี</span></div>
-          <div class="summary-row"><span class="summary-label">ชื่อ</span><span class="summary-value">${payload.name}</span></div>
-          <div class="summary-row"><span class="summary-label">อีเมล</span><span class="summary-value">${payload.email}</span></div>
-          <div class="summary-row"><span class="summary-label">เบอร์โทร</span><span class="summary-value">${payload.phone}</span></div>
-        `;
-        showToast('ลงทะเบียนสำเร็จ ✓');
-        gotoStep(5);
-      } else if (res.status === 409) {
-        const data = await res.json();
-        const field = data.field;
-        showError(field, '⚠ ' + (data.message || 'ข้อมูลซ้ำ'));
-        setBorder(field, '#ef4444');
-        gotoStep(field === 'email' ? 3 : 4);
-        showToast('ไม่สามารถลงทะเบียนซ้ำได้', '#ef4444');
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.fields) {
+        for (const [k, v] of Object.entries(data.fields)) setError(k, v);
+      } else if (data.error === 'full') {
+        showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
+        await loadAvailability();
       } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.message || 'เกิดข้อผิดพลาด', '#ef4444');
+        showAlert(data.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
       }
-    } catch (err) {
-      console.error(err);
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์', '#ef4444');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
+      return;
     }
-  });
+    renderConfirm(data);
+    setStep(5);
+  } catch (err) {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ยืนยันการจอง';
+  }
+};
 
-  gotoStep(1);
+// ─── Step 5: confirmation ──────────────────────────────────
+function renderConfirm(b) {
+  $('conf-code').textContent = b.code;
+  const endHour = String(parseInt(b.time_slot, 10) + 1).padStart(2, '0') + ':00';
+  $('conf-summary').innerHTML = `
+    <div class="summary-row"><span class="label">ชื่อ - นามสกุล</span><span class="value">${escapeHtml(b.name)}</span></div>
+    <div class="summary-row"><span class="label">เบอร์โทรศัพท์</span><span class="value">${escapeHtml(b.phone)}</span></div>
+    <div class="summary-row"><span class="label">อีเมล</span><span class="value">${escapeHtml(b.email)}</span></div>
+    <div class="summary-row"><span class="label">จำนวนคน</span><span class="value">${b.num_people} คน</span></div>
+    <div class="summary-row"><span class="label">วันที่</span><span class="value">${fmtDateLong(b.booking_date)}</span></div>
+    <div class="summary-row"><span class="label">รอบเวลา</span><span class="value">${b.time_slot} - ${endHour}</span></div>
+  `;
+}
+
+$('new-booking').onclick = () => {
+  state.date = null;
+  state.time = null;
+  $('booking-form').reset();
+  clearErrors();
+  setStep(1);
+};
+
+// ─── Back buttons ──────────────────────────────────────────
+document.querySelectorAll('[data-back]').forEach(b => {
+  b.onclick = () => setStep(state.step - 1);
+});
+
+// ─── Helpers ───────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+
+updatePeople();
 </script>
 </body>
 </html>

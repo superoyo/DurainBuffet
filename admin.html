@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>หลังบ้าน — ทุเรียนบุฟเฟ่ต์</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #f59e0b;
+    --primary-dark: #d97706;
+    --accent: #10b981;
+    --danger: #ef4444;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f9fafb;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", "Noto Sans Thai", sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  /* ─── Login ────────────────────────────────────────────── */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #fde68a 0%, #f59e0b 50%, #92400e 100%);
+    padding: 24px;
+  }
+  .login-card {
+    background: #fff; border-radius: 20px;
+    padding: 40px; width: 100%; max-width: 400px;
+    box-shadow: 0 25px 60px rgba(146, 64, 14, 0.35);
+  }
+  .login-card h1 { font-size: 22px; margin-bottom: 4px; }
+  .login-card .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  /* ─── App layout ───────────────────────────────────────── */
+  .topbar {
+    background: #fff; border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar .brand { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+  .brand-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .topbar button {
+    background: transparent; border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 8px;
+    cursor: pointer; font-family: inherit; font-size: 13px;
+  }
+  .topbar button:hover { background: var(--bg); }
+
+  .container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+  /* Form fields */
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .field input {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: inherit;
+  }
+  .field input:focus { outline: none; border-color: var(--primary); }
+
+  .btn {
+    padding: 12px 16px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--primary); color: #fff; width: 100%; padding: 14px; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { filter: brightness(0.95); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-danger { background: #fee2e2; color: var(--danger); }
+
+  .alert { padding: 12px; border-radius: 10px; font-size: 13px; margin-bottom: 12px; }
+  .alert.error { background: #fee2e2; color: #991b1b; }
+  .alert.success { background: #d1fae5; color: #065f46; }
+
+  /* ─── Overview ─────────────────────────────────────────── */
+  .page-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .page-sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+
+  .day-block {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px;
+    margin-bottom: 14px;
+  }
+  .day-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .day-title { font-size: 16px; font-weight: 700; }
+  .day-summary { font-size: 12px; color: var(--muted); }
+
+  .slot-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  .slot-tile {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 12px; cursor: pointer; background: #fff;
+    transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .slot-tile:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.04); }
+  .slot-tile.full { background: #fef2f2; border-color: #fecaca; }
+  .slot-tile.empty { opacity: 0.6; }
+  .slot-tile-time { font-weight: 700; font-size: 14px; }
+  .slot-tile-meta { font-size: 11px; color: var(--muted); }
+  .slot-tile-bar {
+    height: 4px; background: var(--border); border-radius: 2px;
+    margin-top: 4px; overflow: hidden;
+  }
+  .slot-tile-bar-fill { height: 100%; background: var(--primary); }
+
+  /* ─── Slot detail ──────────────────────────────────────── */
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; margin-bottom: 12px; cursor: pointer;
+  }
+  .back-link:hover { color: var(--text); }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-bottom: 18px;
+  }
+  .stat {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+  }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  .stat .small { font-size: 13px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+
+  .table-wrap {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 12px 14px; text-align: left; font-size: 14px; }
+  th { background: var(--bg); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  tr { border-top: 1px solid var(--border); }
+  tr:first-child { border-top: 0; }
+  tr.used { background: #f0fdf4; }
+  .code-cell {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-weight: 700; letter-spacing: 1px;
+  }
+  .badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 999px; font-size: 11px; font-weight: 600;
+  }
+  .badge.used { background: #d1fae5; color: #065f46; }
+  .badge.pending { background: #fef3c7; color: #92400e; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: 1fr; }
+    th:nth-child(4), td:nth-child(4),
+    th:nth-child(5), td:nth-child(5) { display: none; }
+    .container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+  <!-- Login view -->
+  <div id="login-view" class="login-wrap">
+    <div class="login-card">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+        <div class="brand-icon">🥭</div>
+        <div>
+          <h1>หลังบ้าน</h1>
+          <div class="sub">ระบบจัดการการจอง</div>
+        </div>
+      </div>
+      <div id="login-alert" class="alert error" style="display:none"></div>
+      <form id="login-form">
+        <div class="field">
+          <label for="lf-user">Username</label>
+          <input type="text" id="lf-user" autocomplete="username" required value="admin" />
+        </div>
+        <div class="field">
+          <label for="lf-pass">Password</label>
+          <input type="password" id="lf-pass" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary" id="login-btn">เข้าสู่ระบบ</button>
+      </form>
+      <div style="text-align:center; margin-top:14px; font-size:12px;">
+        <a href="/" style="color:var(--muted); text-decoration:none;">← กลับหน้าจอง</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- App view -->
+  <div id="app-view" style="display:none;">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🥭</div>
+        <div>หลังบ้าน · ทุเรียนบุฟเฟ่ต์</div>
+      </div>
+      <button id="logout-btn">ออกจากระบบ</button>
+    </div>
+
+    <div class="container">
+      <!-- Overview -->
+      <div id="overview-view">
+        <div class="page-title">ภาพรวมการจอง</div>
+        <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · รอบละ 100 คน</div>
+        <div id="overview-content"></div>
+      </div>
+
+      <!-- Slot detail -->
+      <div id="slot-view" style="display:none;">
+        <a class="back-link" id="back-overview">← กลับภาพรวม</a>
+        <div class="page-title" id="slot-title"></div>
+        <div class="page-sub" id="slot-subtitle"></div>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-label">จำนวนคนทั้งหมด</div>
+            <div class="stat-value" id="stat-total">0<span class="small">/ <span id="stat-cap">100</span></span></div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ใช้สิทธิ์แล้ว</div>
+            <div class="stat-value" id="stat-used" style="color:var(--accent);">0</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">ยังไม่ใช้สิทธิ์</div>
+            <div class="stat-value" id="stat-pending" style="color:var(--primary-dark);">0</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>รหัส</th>
+                <th>ชื่อ - นามสกุล</th>
+                <th>เบอร์โทร</th>
+                <th>จำนวน</th>
+                <th>เวลาจอง</th>
+                <th>สถานะ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="slot-bookings"></tbody>
+          </table>
+          <div id="slot-empty" class="empty-state" style="display:none;">ยังไม่มีการจองรอบนี้</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+const TH_MONTH_LONG = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_DAY_LONG   = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+const $ = id => document.getElementById(id);
+
+const state = {
+  token: localStorage.getItem('admin_token') || null,
+  overview: null,
+  current: null,
+};
+
+// ─── Auth ──────────────────────────────────────────────────
+function showLogin() {
+  $('login-view').style.display = 'flex';
+  $('app-view').style.display = 'none';
+}
+function showApp() {
+  $('login-view').style.display = 'none';
+  $('app-view').style.display = 'block';
+  loadOverview();
+}
+
+async function api(method, url, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+  };
+  if (state.token) opts.headers.Authorization = `Bearer ${state.token}`;
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (res.status === 401) {
+    state.token = null;
+    localStorage.removeItem('admin_token');
+    showLogin();
+    throw new Error('unauthorized');
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+$('login-form').onsubmit = async (e) => {
+  e.preventDefault();
+  $('login-alert').style.display = 'none';
+  const username = $('lf-user').value.trim();
+  const password = $('lf-pass').value;
+  $('login-btn').disabled = true;
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      $('login-alert').textContent = 'Username หรือ Password ไม่ถูกต้อง';
+      $('login-alert').style.display = 'block';
+      return;
+    }
+    state.token = data.token;
+    localStorage.setItem('admin_token', data.token);
+    showApp();
+  } catch {
+    $('login-alert').textContent = 'เชื่อมต่อไม่ได้';
+    $('login-alert').style.display = 'block';
+  } finally {
+    $('login-btn').disabled = false;
+  }
+};
+
+$('logout-btn').onclick = async () => {
+  try { await api('POST', '/api/admin/logout'); } catch {}
+  state.token = null;
+  localStorage.removeItem('admin_token');
+  showLogin();
+};
+
+// ─── Overview ──────────────────────────────────────────────
+function fmtDateTitle(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return `วัน${TH_DAY_LONG[d.getDay()]}ที่ ${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+
+async function loadOverview() {
+  const data = await api('GET', '/api/admin/overview');
+  state.overview = data;
+  renderOverview();
+}
+
+function renderOverview() {
+  const { dates, slots, capacity, matrix } = state.overview;
+  const root = $('overview-content');
+  root.innerHTML = '';
+  for (const date of dates) {
+    const dayTotal = slots.reduce((s, t) => s + matrix[date][t].total_people, 0);
+    const dayUsed  = slots.reduce((s, t) => s + matrix[date][t].used_people, 0);
+    const dayBookings = slots.reduce((s, t) => s + matrix[date][t].bookings_count, 0);
+
+    const block = document.createElement('div');
+    block.className = 'day-block';
+    block.innerHTML = `
+      <div class="day-header">
+        <div class="day-title">${fmtDateTitle(date)}</div>
+        <div class="day-summary">${dayBookings} การจอง · ${dayTotal} คน · ใช้สิทธิ์ ${dayUsed}</div>
+      </div>
+      <div class="slot-row" data-date="${date}"></div>
+    `;
+    const row = block.querySelector('.slot-row');
+    for (const time of slots) {
+      const m = matrix[date][time];
+      const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
+      const pct = Math.min(100, (m.total_people / capacity) * 100);
+      const cls = m.total_people === 0 ? 'empty' : (m.total_people >= capacity ? 'full' : '');
+      const tile = document.createElement('div');
+      tile.className = `slot-tile ${cls}`;
+      tile.innerHTML = `
+        <div class="slot-tile-time">${time} - ${endHour}</div>
+        <div class="slot-tile-meta">${m.total_people}/${capacity} คน · ใช้ ${m.used_people}</div>
+        <div class="slot-tile-bar"><div class="slot-tile-bar-fill" style="width:${pct}%"></div></div>
+      `;
+      tile.onclick = () => openSlot(date, time);
+      row.appendChild(tile);
+    }
+    root.appendChild(block);
+  }
+}
+
+// ─── Slot detail ───────────────────────────────────────────
+async function openSlot(date, time) {
+  $('overview-view').style.display = 'none';
+  $('slot-view').style.display = 'block';
+  await loadSlot(date, time);
+}
+
+$('back-overview').onclick = () => {
+  $('slot-view').style.display = 'none';
+  $('overview-view').style.display = 'block';
+  loadOverview();
+};
+
+async function loadSlot(date, time) {
+  const data = await api('GET', `/api/admin/slot?date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`);
+  state.current = data;
+  renderSlot();
+}
+
+function renderSlot() {
+  const s = state.current;
+  const endHour = String(parseInt(s.time, 10) + 1).padStart(2, '0') + ':00';
+  $('slot-title').textContent = `รอบ ${s.time} - ${endHour}`;
+  $('slot-subtitle').textContent = fmtDateTitle(s.date);
+  $('stat-total').firstChild.textContent = s.total_people;
+  $('stat-cap').textContent = s.capacity;
+  $('stat-used').textContent = s.used_people;
+  $('stat-pending').textContent = s.total_people - s.used_people;
+
+  const tbody = $('slot-bookings');
+  tbody.innerHTML = '';
+  if (!s.bookings.length) {
+    $('slot-empty').style.display = 'block';
+    return;
+  }
+  $('slot-empty').style.display = 'none';
+
+  s.bookings.forEach((b, i) => {
+    const tr = document.createElement('tr');
+    if (b.used) tr.classList.add('used');
+    const created = new Date(b.created_at + 'Z').toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td class="code-cell">${escapeHtml(b.code)}</td>
+      <td>${escapeHtml(b.name)}<div style="font-size:11px; color:var(--muted);">${escapeHtml(b.email)}</div></td>
+      <td>${escapeHtml(b.phone)}</td>
+      <td>${b.num_people} คน</td>
+      <td>${created}</td>
+      <td>${b.used
+        ? `<span class="badge used">ใช้สิทธิ์แล้ว</span>`
+        : `<span class="badge pending">รอใช้สิทธิ์</span>`}</td>
+      <td>${b.used
+        ? `<button class="btn btn-ghost" data-action="unuse" data-id="${b.id}">ยกเลิก</button>`
+        : `<button class="btn btn-accent" data-action="use" data-id="${b.id}">ใช้สิทธิ์</button>`}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.onclick = async () => {
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      btn.disabled = true;
+      try {
+        await api('POST', `/api/admin/bookings/${id}/${action}`);
+        await loadSlot(state.current.date, state.current.time);
+      } catch {
+        alert('เกิดข้อผิดพลาด');
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+
+// ─── Boot ──────────────────────────────────────────────────
+(async () => {
+  if (state.token) {
+    try {
+      await api('GET', '/api/admin/overview');
+      showApp();
+    } catch {
+      showLogin();
+    }
+  } else {
+    showLogin();
+  }
+})();
+</script>
+</body>
+</html>
