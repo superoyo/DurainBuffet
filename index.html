@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>สถานีทุเรียนไอยรา · จองบุฟเฟ่ต์ทุเรียน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Cafe palette — warm coral, butter yellow, sage green on cream */
+    --brand-red:       #FF7A6D;   /* warm coral, friendlier than maroon */
+    --brand-red-dark:  #E04C3D;
+    --brand-red-deep:  #B91C1C;   /* used sparingly for depth */
+    --brand-gold:      #FDE047;   /* butter yellow */
+    --brand-gold-deep: #F59E0B;
+    --brand-gold-dark: #B45309;
+    --brand-green:     #86EFAC;   /* fresh sage / durian leaf */
+    --brand-green-deep:#16A34A;
+    --brand-cream:     #FFF7E8;
+    --brand-peach:     #FFE4D6;
+
+    --primary:         #FF7A6D;
+    --primary-dark:    #E04C3D;
+    --accent:          #16A34A;
+    --info:            #38BDF8;   /* soft sky for info */
+    --danger:          #EF4444;
+
+    --text:            #422006;
+    --muted:           #92856E;
+    --muted-soft:      #B5A595;
+    --border:          #FCE7C8;
+    --border-soft:     #FFF3E0;
+    --surface:         #FFFFFF;
+    --bg:              #FFF9F0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", "Noto Sans Thai", sans-serif;
+    background:
+      radial-gradient(circle at 15% -10%,  rgba(253, 224, 71, 0.55) 0%, transparent 45%),
+      radial-gradient(circle at 95% 30%,   rgba(255, 158, 145, 0.35) 0%, transparent 50%),
+      radial-gradient(circle at 0% 110%,   rgba(134, 239, 172, 0.30) 0%, transparent 55%),
+      linear-gradient(180deg, #FFFAEC 0%, #FFF6E0 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 24px 16px 60px;
+    color: var(--text);
+  }
+  .page {
+    width: 100%;
+    max-width: 720px;
+  }
+
+  /* ─── KV hero banner ─────────────────────────────────── */
+  .kv-hero {
+    width: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    margin-bottom: 18px;
+    box-shadow: 0 18px 40px rgba(255, 122, 109, 0.25);
+    aspect-ratio: 1714 / 396;
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    position: relative;
+  }
+  .kv-hero img {
+    width: 100%; height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .kv-hero .kv-fallback {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #FCD34D;
+    text-align: center;
+    padding: 16px;
+  }
+  .kv-hero .kv-fallback .ttl {
+    font-size: clamp(22px, 5vw, 40px);
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .kv-hero .kv-fallback .sub { font-size: 13px; opacity: 0.85; margin-top: 6px; }
+  .kv-hero img:not([src]), .kv-hero img[src=""] { display: none; }
+
+  /* ─── Card / ticket ──────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border-radius: 24px;
+    box-shadow:
+      0 30px 80px rgba(255, 122, 109, 0.18),
+      0 4px 12px rgba(255, 158, 145, 0.10);
+    padding: 30px;
+    width: 100%;
+    position: relative;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; margin-bottom: 4px; }
+  .brand-icon {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: linear-gradient(135deg, #FFE4D6 0%, #FED7C5 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 6px 16px rgba(255, 158, 145, 0.35);
+  }
+  h1 {
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: 0.2px;
+    font-weight: 800;
+  }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+
+  /* Mode tabs */
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 22px;
+    background: var(--brand-cream); padding: 5px; border-radius: 16px;
+  }
+  .tab {
+    flex: 1; padding: 12px 12px;
+    text-align: center; cursor: pointer;
+    border-radius: 12px; font-size: 13px; font-weight: 700;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .tab.active {
+    background: var(--surface);
+    color: var(--brand-red-dark);
+    box-shadow: 0 4px 12px rgba(255, 122, 109, 0.18);
+  }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 26px; }
+  .progress-step {
+    flex: 1; height: 6px; border-radius: 999px;
+    background: var(--border-soft); transition: background 0.3s;
+  }
+  .progress-step.active { background: var(--brand-red); }
+  .progress-step.done { background: var(--brand-green-deep); }
+
+  .step, .view { display: none; }
+  .step.active, .view.active { display: block; }
+
+  .step-title { font-size: 19px; font-weight: 800; margin-bottom: 6px; color: var(--text); }
+  .step-hint { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  /* People selector */
+  .people-counter {
+    display: flex; align-items: center; justify-content: center;
+    gap: 28px; margin: 24px 0 8px;
+  }
+  .counter-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none;
+    background: linear-gradient(135deg, #FFE4D6 0%, #FED7C5 100%);
+    color: var(--brand-red-dark);
+    font-size: 30px; font-weight: 700;
+    cursor: pointer; transition: all 0.18s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 14px rgba(255, 158, 145, 0.35);
+  }
+  .counter-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: #fff;
+    transform: scale(1.08);
+    box-shadow: 0 10px 22px rgba(255, 122, 109, 0.45);
+  }
+  .counter-btn:disabled { opacity: 0.35; cursor: not-allowed; box-shadow: none; }
+  .counter-value {
+    font-size: 64px; font-weight: 900; min-width: 110px; text-align: center;
+    color: var(--brand-red-dark);
+    line-height: 1;
+    letter-spacing: -1px;
+  }
+  .counter-label { text-align: center; color: var(--muted); font-size: 13px; font-weight: 600; }
+
+  /* Date/Slot grids */
+  .date-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px; margin-bottom: 8px;
+  }
+  .slot-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .date-card, .slot-card {
+    border: 2px solid var(--border-soft); border-radius: 16px;
+    padding: 14px 8px; text-align: center; cursor: pointer;
+    background: var(--surface); transition: all 0.18s;
+  }
+  .slot-card { padding: 14px 12px; text-align: left; }
+  .date-card:hover:not(.disabled), .slot-card:hover:not(.disabled) {
+    border-color: var(--brand-red);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(255, 122, 109, 0.18);
+  }
+  .date-card.selected, .slot-card.selected {
+    border-color: var(--brand-red);
+    background: linear-gradient(135deg, #FFE4D6 0%, #FED7C5 100%);
+    box-shadow: 0 8px 20px rgba(255, 122, 109, 0.28);
+  }
+  .date-card.disabled, .slot-card.disabled { opacity: 0.4; cursor: not-allowed; background: #FAF5E8; }
+  .date-day { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+  .date-num { font-size: 28px; font-weight: 800; margin: 2px 0; color: var(--text); }
+  .date-month { font-size: 11px; color: var(--muted); }
+  .date-status {
+    font-size: 10px; margin-top: 6px; font-weight: 700;
+    color: var(--brand-green-deep);
+    background: #ECFDF5;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .date-card.disabled .date-status { color: var(--danger); background: #FEE2E2; }
+  .slot-time { font-size: 17px; font-weight: 800; color: var(--text); }
+  .slot-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .slot-card.disabled .slot-meta { color: var(--danger); }
+
+  /* Form */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .field input {
+    width: 100%; padding: 13px 16px;
+    border: 2px solid var(--border-soft); border-radius: 14px;
+    font-size: 15px; font-family: inherit;
+    background: var(--surface);
+    transition: all 0.15s;
+  }
+  .field input:focus { outline: none; border-color: var(--brand-red); box-shadow: 0 0 0 4px rgba(255, 122, 109, 0.12); }
+  .field .err { color: var(--danger); font-size: 12px; margin-top: 4px; min-height: 14px; font-weight: 600; }
+
+  /* Payment deadline notice */
+  .pay-deadline {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1.5px solid var(--brand-gold-deep);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--brand-gold-dark);
+    margin-bottom: 14px;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .pay-deadline b { color: var(--brand-red-dark); }
+
+  /* Payment box — soft butter yellow card */
+  .pay-box {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 2px solid #FDE047;
+    border-radius: 18px;
+    padding: 20px; margin-bottom: 16px;
+    color: var(--text);
+    box-shadow: 0 10px 24px rgba(253, 224, 71, 0.25);
+    position: relative;
+  }
+  .pay-bank { font-size: 16px; font-weight: 800; color: var(--brand-gold-dark); margin-bottom: 12px; letter-spacing: 0.2px; }
+  .pay-top-text {
+    background: rgba(255,255,255,0.7);
+    border: 1px dashed var(--brand-gold-deep);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--brand-red-dark);
+    text-align: center;
+    margin-bottom: 12px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+  }
+  .pay-image {
+    display: block;
+    max-width: 100%;
+    border-radius: 12px;
+    background: #fff;
+    margin: 0 auto 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  .pay-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; font-size: 14px; gap: 12px;
+  }
+  .pay-row .l { color: var(--muted); }
+  .pay-row .v { font-weight: 700; font-family: ui-monospace, "SF Mono", monospace; color: var(--text); }
+  .pay-amount {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px dashed #FBBF24;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .pay-amount .l { color: var(--brand-gold-dark); font-size: 13px; font-weight: 600; }
+  .pay-amount .v {
+    font-size: 30px; font-weight: 900; color: var(--brand-red-dark);
+    letter-spacing: -0.5px;
+  }
+
+  /* Slip upload */
+  .upload-area {
+    border: 2px dashed #FED7AA; border-radius: 16px;
+    padding: 28px 20px; text-align: center; cursor: pointer;
+    background: var(--brand-cream);
+    transition: all 0.18s;
+  }
+  .upload-area:hover { border-color: var(--brand-red); background: var(--brand-peach); }
+  .upload-area.has-file {
+    border-color: var(--brand-green-deep);
+    background: #ECFDF5;
+    border-style: solid;
+  }
+  .upload-icon { font-size: 38px; margin-bottom: 8px; }
+  .upload-hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .upload-preview {
+    max-width: 100%; max-height: 200px; border-radius: 12px;
+    margin-top: 12px; display: block; margin-left: auto; margin-right: auto;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  }
+  input[type="file"] { display: none; }
+
+  /* Summary box */
+  .summary {
+    background: var(--brand-cream);
+    border-radius: 16px;
+    padding: 18px; margin-bottom: 16px;
+    border: 1px solid var(--border-soft);
+  }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; gap: 12px; }
+  .summary-row .label { color: var(--muted); }
+  .summary-row .value { font-weight: 700; text-align: right; color: var(--text); }
+
+  /* Status banners */
+  .status-card {
+    padding: 24px 20px; border-radius: 18px; margin-bottom: 16px;
+    text-align: center;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.05);
+  }
+  .status-card .icon { font-size: 44px; margin-bottom: 8px; }
+  .status-card .title { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+  .status-card .desc { font-size: 13px; opacity: 0.85; }
+  .status-pending {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 1.5px solid #FCD34D;
+    color: var(--brand-gold-dark);
+  }
+  .status-submitted {
+    background: linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%);
+    border: 1.5px solid #FB923C;
+    color: #9A3412;
+  }
+  .status-verified {
+    background: linear-gradient(135deg, #ECFDF5 0%, #BBF7D0 100%);
+    border: 1.5px solid #34D399;
+    color: #14532D;
+  }
+  .status-rejected {
+    background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
+    border: 1.5px solid #F87171;
+    color: #991B1B;
+  }
+  .status-used {
+    background: linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%);
+    border: 1.5px solid #818CF8;
+    color: #3730A3;
+  }
+  .status-cancelled {
+    background: linear-gradient(135deg, #F3F4F6 0%, #D1D5DB 100%);
+    border: 1.5px solid #9CA3AF;
+    color: #1F2937;
+  }
+  .status-extra {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.65);
+    border-radius: 12px;
+    font-size: 13px;
+    text-align: left;
+  }
+  .status-extra .lbl {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .status-extra.transfer { border: 1.5px dashed #6366F1; }
+  .status-extra.transfer .lbl { color: #4F46E5; }
+  .status-extra.transfer .val { color: #3730A3; }
+  .status-extra.reject   { border: 1.5px dashed #DC2626; }
+  .status-extra.reject .lbl { color: #B91C1C; }
+  .status-extra.reject .val { color: #7F1D1D; font-size: 14px; }
+  .status-extra.deadline { border: 1.5px dashed var(--brand-red); text-align: center; }
+  .status-extra.deadline .lbl { color: var(--brand-red-dark); margin-bottom: 8px; }
+  .status-extra.deadline .booked-at { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .status-extra.deadline .countdown {
+    font-size: 36px; font-weight: 800;
+    color: var(--brand-red-dark);
+    font-family: ui-monospace, "SF Mono", monospace;
+    letter-spacing: 3px;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+  }
+  .status-extra.deadline .countdown.warn { color: #DC2626; animation: pulse 1.5s infinite; }
+  .status-extra.deadline .timeout-msg {
+    font-size: 14px; font-weight: 700;
+    color: #7F1D1D;
+    background: #FEE2E2;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-top: 4px;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.6; }
+  }
+
+  .ticket-code {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: 36px; letter-spacing: 8px; font-weight: 800;
+    color: var(--text);
+    background: var(--surface);
+    padding: 16px 26px; border-radius: 16px;
+    display: inline-block; margin: 12px 0;
+    border: 2px dashed var(--brand-red);
+    box-shadow: 0 6px 18px rgba(255, 122, 109, 0.2);
+  }
+
+  /* Buttons */
+  .actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn {
+    flex: 1; padding: 15px;
+    border: none; border-radius: 14px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.18s;
+    letter-spacing: 0.2px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(255, 122, 109, 0.4);
+  }
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(255, 122, 109, 0.5);
+  }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-secondary {
+    background: var(--brand-cream); color: var(--text);
+    border: 2px solid var(--border-soft);
+  }
+  .btn-secondary:hover { background: var(--brand-peach); border-color: var(--border); }
+  .btn-info {
+    background: linear-gradient(135deg, var(--brand-green) 0%, var(--brand-green-deep) 100%);
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.3);
+  }
+  .btn-info:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+  .alert {
+    padding: 13px 16px; border-radius: 14px; font-size: 13px;
+    margin-bottom: 16px; display: none; font-weight: 600;
+  }
+  .alert.error { background: #FEF2F2; color: #991B1B; border: 1.5px solid #FCA5A5; display: block; }
+  .alert.success { background: #ECFDF5; color: #14532D; border: 1.5px solid #86EFAC; display: block; }
+
+  .booking-card {
+    background: var(--surface);
+    border: 2px solid var(--border-soft);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px;
+    transition: all 0.18s;
+  }
+  .booking-card:hover {
+    border-color: var(--brand-red);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(255, 122, 109, 0.15);
+  }
+  .booking-card-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 8px; margin-bottom: 8px;
+  }
+  .booking-card-title { font-weight: 800; font-size: 15px; color: var(--text); }
+  .booking-card-meta { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* Compact countdown row inside list cards */
+  .card-countdown-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; flex-wrap: wrap;
+    margin-top: 10px; padding: 8px 12px;
+    background: rgba(255, 122, 109, 0.08);
+    border: 1px dashed var(--brand-red);
+    border-radius: 12px;
+    font-size: 13px; color: var(--brand-red-dark);
+    font-weight: 700;
+  }
+  .card-countdown-row .countdown {
+    font-size: 18px;
+    font-family: ui-monospace, "SF Mono", monospace;
+    letter-spacing: 1.5px;
+    color: var(--brand-red-dark);
+    font-weight: 800;
+  }
+  .card-countdown-row .countdown.warn { color: #DC2626; animation: pulse 1.5s infinite; }
+
+  /* Card CTA chip — shows that the card is clickable */
+  .card-cta {
+    display: block;
+    padding: 10px 14px; margin-top: 10px;
+    background: linear-gradient(135deg, var(--brand-red) 0%, var(--brand-red-dark) 100%);
+    color: #fff;
+    border-radius: 12px;
+    font-size: 13px; font-weight: 700;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(255, 122, 109, 0.25);
+    transition: all 0.15s;
+  }
+  .card-cta.secondary {
+    background: var(--brand-cream);
+    color: var(--brand-red-dark);
+    border: 1.5px solid var(--border-soft);
+    box-shadow: none;
+  }
+  .booking-card:hover .card-cta:not(.secondary) {
+    box-shadow: 0 6px 16px rgba(255, 122, 109, 0.4);
+  }
+
+  .badge {
+    display: inline-block; padding: 4px 11px;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge.pending     { background: #FEF3C7; color: #92400E; }
+  .badge.submitted   { background: #FFEDD5; color: #9A3412; }
+  .badge.verified    { background: #D1FAE5; color: #065F46; }
+  .badge.rejected    { background: #FEE2E2; color: #991B1B; }
+  .badge.used        { background: #E0E7FF; color: #3730A3; }
+  .badge.cancelled   { background: #F3F4F6; color: #4B5563; }
+
+  /* Tagline strip beneath KV */
+  /* ─── Closed-state screen + flip-clock countdown ────── */
+  /* When open, hide the closed screen; when closed, hide booking steps. */
+  #view-new.site-closed .progress,
+  #view-new.site-closed .step { display: none !important; }
+  #closed-screen { padding: 14px 4px 8px; text-align: center; }
+  .closed-icon {
+    font-size: 56px; line-height: 1;
+    margin-bottom: 14px;
+    filter: drop-shadow(0 6px 14px rgba(255,122,109,0.3));
+  }
+  .closed-title {
+    font-size: 24px; font-weight: 800;
+    color: var(--brand-red-dark);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .closed-sub { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  .closed-date {
+    font-size: 18px; font-weight: 800; color: var(--brand-red-dark);
+    margin-bottom: 18px;
+  }
+  .flip-clock {
+    display: flex; gap: 10px;
+    justify-content: center;
+    margin: 8px 0 24px;
+    flex-wrap: wrap;
+  }
+  .flip-unit { text-align: center; }
+  .flip-card {
+    position: relative;
+    width: 72px; height: 92px;
+    background: linear-gradient(180deg, #fff 0%, #fff 49%, #FEF3C7 50%, #FEF3C7 100%);
+    border-radius: 12px;
+    box-shadow:
+      0 8px 18px rgba(255, 122, 109, 0.2),
+      inset 0 -3px 0 rgba(0,0,0,0.05);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 46px; font-weight: 800;
+    color: var(--brand-red-dark);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    transform-origin: center;
+  }
+  .flip-card::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 6px; right: 6px;
+    height: 1px;
+    background: rgba(0,0,0,0.12);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .flip-card.flip {
+    animation: flipPulse 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes flipPulse {
+    0%   { transform: scale(1) rotateX(0deg); }
+    50%  { transform: scale(0.94) rotateX(35deg); opacity: 0.85; }
+    100% { transform: scale(1) rotateX(0deg); }
+  }
+  .flip-label {
+    margin-top: 8px;
+    font-size: 11px; font-weight: 800;
+    color: var(--brand-red-dark);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .closed-cta {
+    margin-top: 14px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .closed-cta a {
+    color: var(--brand-red-dark);
+    font-weight: 800;
+    text-decoration: none;
+    margin-left: 6px;
+  }
+  .closed-cta a:hover { text-decoration: underline; }
+  @media (max-width: 480px) {
+    .flip-card { width: 64px; height: 82px; font-size: 38px; border-radius: 10px; }
+    .closed-title { font-size: 20px; }
+    .closed-date { font-size: 16px; }
+  }
+
+  .tagline-strip {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center; margin-bottom: 18px;
+  }
+  .tagline-pill {
+    background: var(--surface);
+    color: var(--text);
+    padding: 8px 16px; border-radius: 999px;
+    font-weight: 700; font-size: 12px;
+    border: 1.5px solid var(--border);
+    box-shadow: 0 4px 12px rgba(255, 158, 145, 0.15);
+  }
+  .tagline-pill:nth-child(1) { background: linear-gradient(135deg, #FFE4D6, #FED7C5); border-color: #FBA29A; }
+  .tagline-pill:nth-child(2) { background: linear-gradient(135deg, #FEF3C7, #FDE68A); border-color: #FBBF24; }
+  .tagline-pill:nth-child(3) { background: linear-gradient(135deg, #ECFDF5, #BBF7D0); border-color: #6EE7B7; }
+
+  @media (max-width: 480px) {
+    .card { padding: 24px 18px; }
+    .counter-value { font-size: 52px; }
+    .ticket-code { font-size: 28px; letter-spacing: 5px; padding: 12px 18px; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <!-- KV hero banner — admin uploads via หลังบ้าน → served from /banner -->
+    <div class="kv-hero">
+      <img id="kv-banner-img" alt="สถานีทุเรียนไอยรา · บุฟเฟ่ต์ทุเรียน 199 บาท/รอบ" style="display:none;" />
+      <div class="kv-fallback" id="kv-fallback">
+        <div>
+          <div class="ttl">🚂 สถานีทุเรียนไอยรา</div>
+          <div class="sub">บุฟเฟ่ต์ทุเรียน · 199 บาท/รอบ · 15-24 พ.ค. 2569 · 10.00-19.00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tagline-strip">
+      <span class="tagline-pill">บุฟเฟ่ต์ทุเรียน 199฿</span>
+      <span class="tagline-pill">15-24 พ.ค. 2569</span>
+      <span class="tagline-pill">10 รอบ/วัน</span>
+    </div>
+
+    <div class="card">
+      <div class="brand">
+        <div class="brand-icon">🚂</div>
+        <div>
+          <h1>สถานีทุเรียนไอยรา</h1>
+          <div class="subtitle">ขบวนรถไฟสายความอร่อย · จองบุฟเฟ่ต์ทุเรียนของคุณ</div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-mode="new">จองรอบใหม่</div>
+        <div class="tab" data-mode="lookup">ตรวจสอบสถานะ</div>
+      </div>
+
+    <div id="alert" class="alert"></div>
+
+    <!-- ═══ NEW BOOKING FLOW ════════════════════════════════════ -->
+    <div class="view active" id="view-new">
+
+      <!-- Closed screen — shown when /api/site-state.is_open is false -->
+      <div id="closed-screen" style="display:none;">
+        <div class="closed-icon" id="closed-icon">⏰</div>
+        <div class="closed-title" id="closed-title">ยังไม่เปิดให้จอง</div>
+        <div class="closed-sub" id="closed-sub">สถานีทุเรียนไอยรา จะเปิดให้จองในวันที่</div>
+        <div class="closed-date" id="closed-date"></div>
+
+        <div class="flip-clock" id="flip-clock">
+          <div class="flip-unit">
+            <div class="flip-card"><span id="flip-days">--</span></div>
+            <div class="flip-label">วัน</div>
+          </div>
+          <div class="flip-unit">
+            <div class="flip-card"><span id="flip-hours">--</span></div>
+            <div class="flip-label">ชั่วโมง</div>
+          </div>
+          <div class="flip-unit">
+            <div class="flip-card"><span id="flip-minutes">--</span></div>
+            <div class="flip-label">นาที</div>
+          </div>
+          <div class="flip-unit">
+            <div class="flip-card"><span id="flip-seconds">--</span></div>
+            <div class="flip-label">วินาที</div>
+          </div>
+        </div>
+
+        <div class="closed-cta">
+          เคยจองไว้แล้ว?
+          <a href="#" id="closed-go-lookup">→ ตรวจสอบสถานะ</a>
+        </div>
+      </div>
+
+      <div class="progress">
+        <div class="progress-step active" data-ps="1"></div>
+        <div class="progress-step" data-ps="2"></div>
+        <div class="progress-step" data-ps="3"></div>
+        <div class="progress-step" data-ps="4"></div>
+        <div class="progress-step" data-ps="5"></div>
+        <div class="progress-step" data-ps="6"></div>
+      </div>
+
+      <!-- Step 1: Date -->
+      <div class="step active" data-step="1">
+        <div class="step-title">เลือกวันที่</div>
+        <div class="step-hint">เฉพาะวันที่ยังมีรอบว่าง</div>
+        <div class="date-grid" id="date-grid"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="next-1" disabled>ถัดไป</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Time -->
+      <div class="step" data-step="2">
+        <div class="step-title">เลือกรอบเวลา</div>
+        <div class="step-hint" id="time-hint">รอบละ 1 ชั่วโมง</div>
+        <div class="slot-grid" id="slot-grid"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+          <button class="btn btn-primary" id="next-2" disabled>ถัดไป</button>
+        </div>
+      </div>
+
+      <!-- Step 3: People (max bounded by remaining capacity) -->
+      <div class="step" data-step="3">
+        <div class="step-title">เลือกจำนวนคน</div>
+        <div class="step-hint" id="people-hint">1 การจอง สูงสุด 5 คน · 1 เบอร์โทรจองได้รอบเดียวต่อวัน</div>
+        <div class="people-counter">
+          <button class="counter-btn" id="dec-people">−</button>
+          <div class="counter-value" id="people-value">1</div>
+          <button class="counter-btn" id="inc-people">+</button>
+        </div>
+        <div class="counter-label">คน</div>
+        <div id="people-availability" style="margin-top:10px; text-align:center; font-size:12px; color:var(--muted);"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" data-back>ย้อนกลับ</button>
+          <button class="btn btn-primary" id="next-3">ถัดไป</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Form -->
+      <div class="step" data-step="4">
+        <div class="step-title">กรอกข้อมูลผู้จอง</div>
+        <div class="step-hint" id="form-hint"></div>
+        <form id="booking-form" novalidate>
+          <div class="field">
+            <label for="f-name">ชื่อ - นามสกุล</label>
+            <input type="text" id="f-name" autocomplete="name" required />
+            <div class="err" data-err="name"></div>
+          </div>
+          <div class="field">
+            <label for="f-phone">เบอร์โทรศัพท์</label>
+            <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+            <div class="err" data-err="phone"></div>
+            <div id="phone-warning" class="alert" style="display:none; margin-top:6px;"></div>
+          </div>
+          <div class="field">
+            <label for="f-email">อีเมล <span style="color:var(--muted); font-weight:500;">(ไม่บังคับ)</span></label>
+            <input type="email" id="f-email" autocomplete="email" placeholder="you@example.com" />
+            <div class="err" data-err="email"></div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn btn-secondary" data-back>ย้อนกลับ</button>
+            <button type="submit" class="btn btn-primary" id="submit-booking">บันทึกการจอง</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Step 5: Payment -->
+      <div class="step" data-step="5">
+        <div class="step-title">ชำระเงิน</div>
+        <div class="step-hint">โอนเงินตามจำนวนด้านล่าง แล้วแนบสลิป (จะแนบทีหลังก็ได้)</div>
+
+        <div class="pay-deadline">⏰ <b>กรุณาโอนภายใน 1 ชั่วโมง</b> — หากเกินเวลา ทางร้านสงวนสิทธิ์ในการยกเลิกการจอง</div>
+
+        <div class="pay-box">
+          <div class="pay-top-text" id="pay-top-text" style="display:none;"></div>
+          <img class="pay-image" id="pay-image" style="display:none;" alt="ข้อมูลการชำระเงิน" />
+          <div id="pay-bank-section">
+            <div class="pay-bank" id="pay-bank">ธนาคาร...</div>
+            <div class="pay-row"><span class="l">ชื่อบัญชี</span><span class="v" id="pay-name">-</span></div>
+            <div class="pay-row"><span class="l">เลขที่บัญชี</span><span class="v" id="pay-no">-</span></div>
+          </div>
+          <div class="pay-amount">
+            <span class="l">ยอดที่ต้องชำระ</span>
+            <span class="v" id="pay-total">฿0</span>
+          </div>
+          <div style="font-size:11px; color:#1e3a8a; opacity:0.7; margin-top:6px;" id="pay-breakdown"></div>
+        </div>
+
+        <label for="f-slip" class="upload-area" id="upload-label">
+          <div class="upload-icon">📎</div>
+          <div style="font-weight:600;">แนบสลิปการโอนเงิน</div>
+          <div class="upload-hint">JPG / PNG / WEBP / HEIC ไม่เกิน 5MB</div>
+          <img id="slip-preview" class="upload-preview" style="display:none;" />
+        </label>
+        <input type="file" id="f-slip" accept="image/*" />
+
+        <div class="actions">
+          <button class="btn btn-secondary" id="skip-slip">แนบทีหลัง</button>
+          <button class="btn btn-primary" id="upload-slip" disabled>ส่งสลิป</button>
+        </div>
+      </div>
+
+      <!-- Step 6: Confirmation/Summary -->
+      <div class="step" data-step="6">
+        <div id="conf-status"></div>
+        <div class="summary" id="conf-summary"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="new-booking">กลับหน้าแรก</button>
+          <button class="btn btn-info" id="goto-lookup">ตรวจสอบสถานะ</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ LOOKUP FLOW ════════════════════════════════════════ -->
+    <div class="view" id="view-lookup">
+      <!-- Lookup form -->
+      <div class="step active" data-lstep="phone">
+        <div class="step-title">ตรวจสอบสถานะการจอง</div>
+        <div class="step-hint">กรอกเบอร์โทรศัพท์ที่ใช้จอง</div>
+        <form id="lookup-form" novalidate>
+          <div class="field">
+            <label for="lk-phone">เบอร์โทรศัพท์</label>
+            <input type="tel" id="lk-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+            <div class="err" data-err="lk-phone"></div>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary" id="lookup-btn">ค้นหาการจอง</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lookup result list -->
+      <div class="step" data-lstep="list">
+        <div class="step-title">การจองของคุณ</div>
+        <div class="step-hint">เลือกการจองเพื่อดูรายละเอียด หรือแนบสลิปเพิ่มเติม</div>
+        <div id="lk-bookings"></div>
+        <div class="actions">
+          <button class="btn btn-secondary" id="lk-back-phone">ค้นหาเบอร์อื่น</button>
+        </div>
+      </div>
+
+      <!-- Lookup detail -->
+      <div class="step" data-lstep="detail">
+        <div id="lk-detail-status"></div>
+        <div class="summary" id="lk-detail-summary"></div>
+
+        <div id="lk-pay-section" style="display:none;">
+          <div class="pay-box" style="margin-top:8px;">
+            <div class="pay-top-text" id="lk-pay-top-text" style="display:none;"></div>
+            <img class="pay-image" id="lk-pay-image" style="display:none;" alt="ข้อมูลการชำระเงิน" />
+            <div id="lk-pay-bank-section">
+              <div class="pay-bank" id="lk-pay-bank">ธนาคาร...</div>
+              <div class="pay-row"><span class="l">ชื่อบัญชี</span><span class="v" id="lk-pay-name">-</span></div>
+              <div class="pay-row"><span class="l">เลขที่บัญชี</span><span class="v" id="lk-pay-no">-</span></div>
+            </div>
+            <div class="pay-amount">
+              <span class="l">ยอดที่ต้องชำระ</span>
+              <span class="v" id="lk-pay-total">฿0</span>
+            </div>
+          </div>
+
+          <label for="lk-slip" class="upload-area" id="lk-upload-label" style="margin-top:10px;">
+            <div class="upload-icon">📎</div>
+            <div style="font-weight:600;">แนบสลิปการโอนเงิน</div>
+            <div class="upload-hint">JPG / PNG / WEBP / HEIC ไม่เกิน 5MB</div>
+            <img id="lk-slip-preview" class="upload-preview" style="display:none;" />
+          </label>
+          <input type="file" id="lk-slip" accept="image/*" />
+          <div class="actions">
+            <button class="btn btn-primary" id="lk-upload-slip" disabled>ส่งสลิป</button>
+          </div>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button class="btn btn-secondary" id="lk-back-list">← การจองทั้งหมด</button>
+        </div>
+      </div>
+    </div>
+
+    </div><!-- /.card -->
+  </div><!-- /.page -->
+
+<script>
+const TH_MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MONTH_LONG  = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const TH_DAY_SHORT   = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+
+const STATUS_LABEL = {
+  pending:   { label: 'รอชำระเงิน',          icon: '💳', cls: 'status-pending',   badge: 'pending'   },
+  submitted: { label: 'รอตรวจสอบสลิป',      icon: '⏳', cls: 'status-submitted', badge: 'submitted' },
+  verified:  { label: 'ยืนยันแล้ว',           icon: '✅', cls: 'status-verified',  badge: 'verified'  },
+  rejected:  { label: 'ปฏิเสธการชำระเงิน',  icon: '❌', cls: 'status-rejected',  badge: 'rejected'  },
+  cancelled: { label: 'ยกเลิกการจอง',        icon: '🚫', cls: 'status-cancelled', badge: 'cancelled' },
+  used:      { label: 'ใช้สิทธิ์แล้ว',         icon: '🎉', cls: 'status-used',      badge: 'used'      },
+};
+
+// "Used" overrides the payment status for display purposes once the
+// customer has actually checked in at the event.
+function effectiveStatus(b) {
+  if (b.used) return 'used';
+  return b.payment_status;
+}
+
+const state = {
+  mode: 'new',
+  step: 1,
+  people: 1,
+  peopleMax: 5,  // dynamic — recomputed once a slot is picked
+  date: null,
+  time: null,
+  config: null,
+  availability: null,
+  booking: null,
+  slipFile: null,
+  phoneTakenBy: null,   // existing booking found by realtime check
+  phoneCheckTimer: null,
+  // lookup
+  lkPhone: null,
+  lkBookings: [],
+  lkCurrent: null,
+  lkSlipFile: null,
+};
+
+const $ = id => document.getElementById(id);
+const $$ = sel => document.querySelectorAll(sel);
+
+function showAlert(msg, kind = 'error') {
+  const a = $('alert');
+  a.textContent = msg;
+  a.className = `alert ${kind}`;
+}
+function hideAlert() { $('alert').className = 'alert'; }
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
+  }[c]));
+}
+
+function fmtDateLong(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return `${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
+}
+// Full date+time of when the booking was created (UTC stored in DB → local view)
+function fmtCreatedAtFull(b) {
+  if (!b.created_at) return '';
+  const d = new Date(b.created_at + 'Z');
+  if (isNaN(d)) return '';
+  const date = `${d.getDate()} ${TH_MONTH_LONG[d.getMonth()]} ${d.getFullYear() + 543}`;
+  const time = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  return `${date} เวลา ${time} น.`;
+}
+function fmtSlot(time) {
+  const endHour = String(parseInt(time, 10) + 1).padStart(2, '0') + ':00';
+  return `${time} - ${endHour}`;
+}
+function fmtBaht(n) { return '฿' + Number(n).toLocaleString('th-TH'); }
+
+// ─── Mode tabs ─────────────────────────────────────────────
+$$('.tab').forEach(t => {
+  t.onclick = () => {
+    state.mode = t.dataset.mode;
+    $$('.tab').forEach(x => x.classList.toggle('active', x === t));
+    $$('.view').forEach(v => v.classList.remove('active'));
+    $(`view-${state.mode}`).classList.add('active');
+    hideAlert();
+    if (state.mode === 'lookup') showLstep('phone');
+  };
+});
+
+// ─── New-booking step machine ──────────────────────────────
+function setStep(n) {
+  state.step = n;
+  $$('#view-new .step').forEach(el => el.classList.remove('active'));
+  document.querySelector(`#view-new .step[data-step="${n}"]`).classList.add('active');
+  $$('#view-new .progress-step').forEach(ps => {
+    const i = +ps.dataset.ps;
+    ps.classList.remove('active', 'done');
+    if (i < n) ps.classList.add('done');
+    else if (i === n) ps.classList.add('active');
+  });
+  hideAlert();
+}
+
+// ─── Step 1: date ──────────────────────────────────────────
+const MAX_PEOPLE = 5;
+async function loadAvailability() {
+  if (!state.config) state.config = await fetch('/api/config').then(r => r.json());
+  // Fetch with people=1 — at this point the user hasn't picked a party size yet,
+  // so we just want to know which dates/slots have any room left.
+  state.availability = await fetch(`/api/availability?people=1`).then(r => r.json());
+}
+function dateHasAvailableSlot(date) {
+  const day = state.availability?.slots?.[date];
+  if (!day) return false;
+  return Object.values(day).some(s => s.available);
+}
+function renderDates() {
+  const grid = $('date-grid');
+  grid.innerHTML = '';
+  for (const date of state.config.dates) {
+    const d = new Date(date + 'T00:00:00');
+    const has = dateHasAvailableSlot(date);
+    const card = document.createElement('div');
+    card.className = 'date-card' + (has ? '' : ' disabled') + (state.date === date ? ' selected' : '');
+    card.innerHTML = `
+      <div class="date-day">${TH_DAY_SHORT[d.getDay()]}</div>
+      <div class="date-num">${d.getDate()}</div>
+      <div class="date-month">${TH_MONTH_SHORT[d.getMonth()]}</div>
+      <div class="date-status">${has ? 'มีรอบว่าง' : 'เต็ม'}</div>
+    `;
+    if (has) card.onclick = () => {
+      state.date = date;
+      state.time = null;
+      renderDates();
+      $('next-1').disabled = false;
+    };
+    grid.appendChild(card);
+  }
+  $('next-1').disabled = !state.date || !dateHasAvailableSlot(state.date);
+}
+$('next-1').onclick = () => { renderSlots(); setStep(2); };
+
+// ─── Step 2: time ──────────────────────────────────────────
+function renderSlots() {
+  $('time-hint').textContent = `วันที่ ${fmtDateLong(state.date)} • รอบละ 1 ชั่วโมง`;
+  const grid = $('slot-grid');
+  grid.innerHTML = '';
+  const slots = state.availability.slots[state.date];
+  for (const time of state.config.slots) {
+    const info = slots[time];
+    const card = document.createElement('div');
+    card.className = 'slot-card' + (info.available ? '' : ' disabled') + (state.time === time ? ' selected' : '');
+    card.innerHTML = `
+      <div class="slot-time">${fmtSlot(time)}</div>
+      <div class="slot-meta">${info.available ? `เหลือ ${info.remaining} ที่นั่ง` : 'เต็ม'}</div>
+    `;
+    if (info.available) card.onclick = () => { state.time = time; renderSlots(); $('next-2').disabled = false; };
+    grid.appendChild(card);
+  }
+  $('next-2').disabled = !state.time || !slots[state.time]?.available;
+}
+$('next-2').onclick = () => {
+  // Step 3 (people) max bounded by what's left in the chosen slot
+  const remaining = state.availability.slots[state.date][state.time].remaining;
+  state.peopleMax = Math.min(MAX_PEOPLE, remaining);
+  if (state.people > state.peopleMax) state.people = state.peopleMax;
+  if (state.people < 1) state.people = 1;
+  updatePeople();
+  setStep(3);
+};
+
+// ─── Step 3: people (dynamic max from selected slot) ───────
+function updatePeople() {
+  const max = state.peopleMax || MAX_PEOPLE;
+  $('people-value').textContent = state.people;
+  $('dec-people').disabled = state.people <= 1;
+  $('inc-people').disabled = state.people >= max;
+  // Show context about the chosen slot
+  if (state.date && state.time) {
+    const remaining = state.availability?.slots?.[state.date]?.[state.time]?.remaining ?? 0;
+    $('people-availability').textContent =
+      `📅 ${fmtDateLong(state.date)} • ⏰ ${fmtSlot(state.time)} • เหลือ ${remaining} ที่นั่ง (จองได้สูงสุด ${max} คน)`;
+  } else {
+    $('people-availability').textContent = '';
+  }
+}
+$('inc-people').onclick = () => {
+  const max = state.peopleMax || MAX_PEOPLE;
+  if (state.people < max) { state.people++; updatePeople(); }
+};
+$('dec-people').onclick = () => { if (state.people > 1) { state.people--; updatePeople(); } };
+$('next-3').onclick = () => {
+  $('form-hint').textContent =
+    `${state.people} คน • ${fmtDateLong(state.date)} • ${fmtSlot(state.time)}`;
+  // Re-check phone-warning against the freshly selected date
+  const phone = $('f-phone').value.trim();
+  if (/^[0-9\-+\s()]{9,15}$/.test(phone)) recheckPhoneForCurrentDate(phone);
+  setStep(4);
+};
+
+// ─── Step 4: form ──────────────────────────────────────────
+function clearErrors() { $$('[data-err]').forEach(el => el.textContent = ''); }
+function setError(field, msg) {
+  const el = document.querySelector(`[data-err="${field}"]`);
+  if (el) el.textContent = msg;
+}
+
+// Realtime phone check — flags an existing booking before the user submits
+function clearPhoneWarning() {
+  state.phoneTakenBy = null;
+  $('phone-warning').style.display = 'none';
+  $('phone-warning').className = 'alert';
+}
+function showPhoneWarning(data, phone) {
+  state.phoneTakenBy = phone;
+  const w = $('phone-warning');
+  const s = STATUS_LABEL[data.payment_status] || STATUS_LABEL.pending;
+  w.className = 'alert error';
+  w.style.display = 'block';
+  w.innerHTML = `
+    เบอร์นี้เคยจองวันเดียวกันนี้แล้ว · ${fmtDateLong(data.booking_date)} · ${fmtSlot(data.time_slot)} · ${s.label}
+    <a href="#" id="go-lookup-from-warning" style="color:#7F1D1D; font-weight:800; text-decoration:underline; margin-left:6px;">→ ตรวจสอบสถานะ</a>
+  `;
+  $('go-lookup-from-warning').onclick = (e) => {
+    e.preventDefault();
+    document.querySelector('.tab[data-mode="lookup"]').click();
+    $('lk-phone').value = phone;
+    $('lookup-form').requestSubmit();
+  };
+}
+async function recheckPhoneForCurrentDate(phone) {
+  try {
+    // Per-day uniqueness — only flag conflicts on the date the customer is booking
+    const url = state.date
+      ? `/api/booking/check?phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(state.date)}`
+      : `/api/booking/check?phone=${encodeURIComponent(phone)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.exists) showPhoneWarning(data, phone);
+    else clearPhoneWarning();
+  } catch { /* network blip — server-side check is authoritative */ }
+}
+$('f-phone').addEventListener('input', (e) => {
+  clearTimeout(state.phoneCheckTimer);
+  const phone = e.target.value.trim();
+  if (state.phoneTakenBy && state.phoneTakenBy !== phone) clearPhoneWarning();
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) return;
+  state.phoneCheckTimer = setTimeout(() => recheckPhoneForCurrentDate(phone), 350);
+});
+
+$('booking-form').onsubmit = async (e) => {
+  e.preventDefault();
+  clearErrors();
+  hideAlert();
+
+  const name  = $('f-name').value.trim();
+  const phone = $('f-phone').value.trim();
+  const email = $('f-email').value.trim();
+
+  let ok = true;
+  if (!name) { setError('name', 'กรุณากรอกชื่อ-นามสกุล'); ok = false; }
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('phone', 'เบอร์โทรไม่ถูกต้อง'); ok = false; }
+  // Email is optional — only validate when something is typed
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
+  if (state.phoneTakenBy) { setError('phone', 'เบอร์นี้เคยจองแล้ว — กรุณาเข้าตรวจสอบสถานะ'); ok = false; }
+  if (!ok) return;
+
+  const btn = $('submit-booking');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  try {
+    const res = await fetch('/api/booking', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, phone, email,
+        num_people: state.people,
+        booking_date: state.date,
+        time_slot: state.time,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.fields) for (const [k, v] of Object.entries(data.fields)) setError(k, v);
+      else if (data.error === 'phone_exists') {
+        if (data.existing) showPhoneWarning(data.existing, phone);
+        showAlert(data.message || 'เบอร์นี้เคยจองแล้ว — กรุณาเข้าตรวจสอบสถานะ');
+      } else if (data.error === 'full') {
+        showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
+        await loadAvailability();
+      } else showAlert(data.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
+      return;
+    }
+    state.booking = data;
+    renderPayBox(state.booking);
+    state.slipFile = null;
+    $('slip-preview').style.display = 'none';
+    $('upload-label').classList.remove('has-file');
+    $('upload-slip').disabled = true;
+    setStep(5);
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'บันทึกการจอง';
+  }
+};
+
+// ─── Step 5: payment + slip ────────────────────────────────
+// Cache the admin-uploaded payment image meta so we don't refetch every render
+let _paymentInfoCache = null;
+async function getPaymentInfo() {
+  if (_paymentInfoCache) return _paymentInfoCache;
+  try {
+    const res = await fetch('/api/payment-info');
+    _paymentInfoCache = await res.json();
+  } catch {
+    _paymentInfoCache = { has_image: false, top_text: '' };
+  }
+  return _paymentInfoCache;
+}
+
+function renderPayBox(b) {
+  const bank = state.config.bank;
+  const total = bank.price_per_person * b.num_people;
+  $('pay-total').textContent = fmtBaht(total);
+  $('pay-breakdown').textContent = `${b.num_people} คน × ${fmtBaht(bank.price_per_person)}/คน`;
+  applyPaymentDisplay({
+    topTextEl: $('pay-top-text'),
+    imageEl:   $('pay-image'),
+    bankWrap:  $('pay-bank-section'),
+    bankEl:    $('pay-bank'),
+    nameEl:    $('pay-name'),
+    noEl:      $('pay-no'),
+    bank,
+  });
+}
+
+async function applyPaymentDisplay(els) {
+  const info = await getPaymentInfo();
+  if (info.has_image) {
+    // Custom image mode — hide bank rows, show image (+ optional text)
+    els.imageEl.src = '/payment-image?v=' + encodeURIComponent(info.image_uploaded_at || Date.now());
+    els.imageEl.style.display = 'block';
+    if (info.top_text) {
+      els.topTextEl.textContent = info.top_text;
+      els.topTextEl.style.display = 'block';
+    } else {
+      els.topTextEl.style.display = 'none';
+    }
+    els.bankWrap.style.display = 'none';
+  } else {
+    // Fallback — bank rows
+    els.topTextEl.style.display = 'none';
+    els.imageEl.style.display = 'none';
+    els.bankWrap.style.display = 'block';
+    els.bankEl.textContent = els.bank.bank;
+    els.nameEl.textContent = els.bank.account_name;
+    els.noEl.textContent   = els.bank.account_number;
+  }
+}
+
+function wireFilePicker(inputId, labelId, previewId, onPick) {
+  const input = $(inputId), label = $(labelId), preview = $(previewId);
+  input.onchange = () => {
+    const file = input.files[0];
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { showAlert('กรุณาเลือกไฟล์รูปภาพ'); input.value = ''; return; }
+    if (file.size > 5 * 1024 * 1024) { showAlert('ไฟล์ใหญ่เกิน 5MB'); input.value = ''; return; }
+    hideAlert();
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(file);
+    label.classList.add('has-file');
+    onPick(file);
+  };
+}
+
+wireFilePicker('f-slip', 'upload-label', 'slip-preview', (file) => {
+  state.slipFile = file;
+  $('upload-slip').disabled = false;
+});
+
+$('upload-slip').onclick = async () => {
+  if (!state.slipFile || !state.booking) return;
+  const btn = $('upload-slip');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const fd = new FormData();
+    fd.append('slip', state.slipFile);
+    fd.append('phone', state.booking.phone);
+    const res = await fetch(`/api/booking/${state.booking.id}/slip`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) { showAlert(data.message || 'อัปโหลดไม่สำเร็จ'); return; }
+    state.booking = data;
+    renderConfirm();
+    setStep(6);
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งสลิป';
+  }
+};
+
+$('skip-slip').onclick = () => {
+  renderConfirm();
+  setStep(6);
+};
+
+// ─── Step 6: confirmation/summary ──────────────────────────
+function renderStatusBlock(b, container) {
+  const eff = effectiveStatus(b);
+  const s = STATUS_LABEL[eff] || STATUS_LABEL.pending;
+
+  let desc = '';
+  if (eff === 'pending')   desc = 'กรุณาโอนเงินภายใน 1 ชั่วโมง แล้วกลับมาแนบสลิป';
+  if (eff === 'submitted') desc = 'ทางร้านได้รับสลิปแล้ว กรุณารอการตรวจสอบ (ปกติภายใน 24 ชม.)';
+  if (eff === 'verified')  desc = 'การชำระเงินได้รับการยืนยัน — ตั๋วของคุณพร้อมใช้งาน';
+  if (eff === 'rejected')  desc = 'แอดมินตรวจสอบสลิปแล้วไม่ผ่าน — กรุณาแนบสลิปใหม่ตามเหตุผลด้านล่าง';
+  if (eff === 'cancelled') desc = 'การจองนี้ถูกยกเลิก — สามารถจองใหม่ได้';
+  if (eff === 'used') {
+    const when = b.used_at ? new Date(b.used_at + 'Z').toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }) : '';
+    desc = `ขอบคุณที่มาใช้บริการครับ${when ? ` · ${when}` : ''}`;
+  }
+
+  const parts = [];
+
+  // Ticket code (verified, not yet used)
+  if (eff === 'verified' && b.code) {
+    parts.push(`
+      <div style="margin-top:10px; text-align:center;">
+        <div style="font-size:12px;">รหัสตั๋ว 6 หลัก</div>
+        <div class="ticket-code">${escapeHtml(b.code)}</div>
+        <div style="font-size:12px;">นำรหัสนี้มาแสดงในวันใช้สิทธิ์</div>
+      </div>`);
+  }
+
+  // Transfer notice (independent of status — show whenever original_date is set)
+  if (b.original_date) {
+    parts.push(`
+      <div class="status-extra transfer">
+        <div class="lbl">📍 ย้ายรอบมาจาก</div>
+        <div class="val">${fmtDateLong(b.original_date)} · ${fmtSlot(b.original_time)}</div>
+      </div>`);
+  }
+
+  // Pending: 60-minute payment countdown anchored to created_at
+  if (eff === 'pending' && b.created_at) {
+    parts.push(`
+      <div class="status-extra deadline">
+        <div class="booked-at">📅 จองเมื่อ ${fmtCreatedAtFull(b)}</div>
+        <div class="lbl">โปรดชำระเงินภายใน</div>
+        <div class="countdown" data-countdown-from="${escapeHtml(b.created_at)}">--:--</div>
+      </div>`);
+  }
+
+  // Rejection or cancellation reason — same field, different label
+  if (b.payment_status === 'rejected' || b.payment_status === 'cancelled') {
+    const isCancel = b.payment_status === 'cancelled';
+    parts.push(`
+      <div class="status-extra reject">
+        <div class="lbl">${isCancel ? 'เหตุผลในการยกเลิก' : 'เหตุผลที่แอดมินปฏิเสธ'}</div>
+        <div class="val">${escapeHtml(b.rejected_reason || (isCancel ? 'ยกเลิกโดยผู้ดูแล' : 'สลิปไม่ผ่านการตรวจสอบ'))}</div>
+      </div>`);
+  }
+
+  container.innerHTML = `
+    <div class="status-card ${s.cls}">
+      <div class="icon">${s.icon}</div>
+      <div class="title">${s.label}</div>
+      <div class="desc">${desc}</div>
+      ${parts.join('')}
+    </div>`;
+
+  // Refresh all live countdowns (detail card + any list cards)
+  startAllCountdowns();
+}
+
+// ─── 60-minute payment countdowns (multi-instance via data attributes) ──
+let countdownTimer = null;
+function stopAllCountdowns() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+}
+function startAllCountdowns() {
+  stopAllCountdowns();
+  function tick() {
+    const elements = document.querySelectorAll('[data-countdown-from]');
+    if (!elements.length) { stopAllCountdowns(); return; }
+    elements.forEach(el => {
+      const created = new Date(el.dataset.countdownFrom + 'Z');
+      if (isNaN(created)) return;
+      const remaining = created.getTime() + 60 * 60 * 1000 - Date.now();
+      if (remaining <= 0) {
+        el.outerHTML = `<div class="timeout-msg">⚠️ การจองนี้ไม่ได้ชำระเงินในเวลาที่กำหนด</div>`;
+        return;
+      }
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+      el.classList.toggle('warn', remaining < 10 * 60 * 1000);
+    });
+  }
+  tick();
+  countdownTimer = setInterval(tick, 1000);
+}
+
+function renderSummaryRows(b, container) {
+  container.innerHTML = `
+    <div class="summary-row"><span class="label">ชื่อ - นามสกุล</span><span class="value">${escapeHtml(b.name)}</span></div>
+    <div class="summary-row"><span class="label">เบอร์โทร</span><span class="value">${escapeHtml(b.phone)}</span></div>
+    <div class="summary-row"><span class="label">อีเมล</span><span class="value">${escapeHtml(b.email)}</span></div>
+    <div class="summary-row"><span class="label">จำนวนคน</span><span class="value">${b.num_people} คน</span></div>
+    <div class="summary-row"><span class="label">วันที่</span><span class="value">${fmtDateLong(b.booking_date)}</span></div>
+    <div class="summary-row"><span class="label">รอบเวลา</span><span class="value">${fmtSlot(b.time_slot)}</span></div>
+  `;
+}
+
+function renderConfirm() {
+  renderStatusBlock(state.booking, $('conf-status'));
+  renderSummaryRows(state.booking, $('conf-summary'));
+}
+
+$('new-booking').onclick = async () => {
+  state.date = null; state.time = null; state.booking = null; state.slipFile = null;
+  state.people = 1; state.peopleMax = MAX_PEOPLE;
+  $('booking-form').reset();
+  $('f-slip').value = '';
+  clearErrors();
+  clearPhoneWarning();
+  // Reload availability so a fresh visit shows current capacity
+  await loadAvailability();
+  renderDates();
+  updatePeople();
+  setStep(1);
+};
+$('goto-lookup').onclick = () => {
+  $$('.tab').forEach(t => { if (t.dataset.mode === 'lookup') t.click(); });
+  if (state.booking?.phone) { $('lk-phone').value = state.booking.phone; $('lookup-form').requestSubmit(); }
+};
+
+// Back buttons
+$$('#view-new [data-back]').forEach(b => b.onclick = () => setStep(state.step - 1));
+
+// ═════════ LOOKUP FLOW ═════════
+function showLstep(name) {
+  $$('#view-lookup .step').forEach(el => el.classList.remove('active'));
+  document.querySelector(`#view-lookup .step[data-lstep="${name}"]`).classList.add('active');
+}
+
+$('lookup-form').onsubmit = async (e) => {
+  e.preventDefault();
+  clearErrors(); hideAlert();
+  const phone = $('lk-phone').value.trim();
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('lk-phone', 'เบอร์โทรไม่ถูกต้อง'); return; }
+  const btn = $('lookup-btn'); btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
+  try {
+    if (!state.config) state.config = await fetch('/api/config').then(r => r.json());
+    const res = await fetch(`/api/booking/lookup?phone=${encodeURIComponent(phone)}`);
+    const data = await res.json();
+    state.lkPhone = phone;
+    state.lkBookings = data.bookings || [];
+    if (!state.lkBookings.length) {
+      showAlert('ไม่พบการจองสำหรับเบอร์โทรนี้');
+      return;
+    }
+    renderLkList();
+    showLstep('list');
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ค้นหาการจอง';
+  }
+};
+
+function renderLkList() {
+  const root = $('lk-bookings');
+  root.innerHTML = '';
+
+  // CTA copy by effective status — pending gets the upload-slip prompt;
+  // others land on a softer "see details" call.
+  const CTA_PRIMARY = {
+    pending:   '📤 คลิกเพื่ออัพโหลดสลิปโอน',
+    rejected:  '📤 คลิกเพื่ออัพโหลดสลิปใหม่',
+    submitted: 'คลิกเพื่อดูสถานะการตรวจสอบ',
+    verified:  '🎫 คลิกเพื่อดูรหัสตั๋ว',
+    used:      'คลิกเพื่อดูรายละเอียด',
+    cancelled: 'คลิกเพื่อดูรายละเอียด',
+  };
+  const CTA_SECONDARY_STATUSES = new Set(['submitted', 'verified', 'used', 'cancelled']);
+
+  for (const b of state.lkBookings) {
+    const eff = effectiveStatus(b);
+    const s = STATUS_LABEL[eff] || STATUS_LABEL.pending;
+    const transferTag = b.original_date
+      ? `<span class="badge" style="background:#E0E7FF; color:#3730A3;">↪ ย้ายรอบ</span>`
+      : '';
+    const countdownRow = (eff === 'pending' && b.created_at)
+      ? `<div class="card-countdown-row">
+           <span>⏳ ชำระภายใน</span>
+           <span class="countdown" data-countdown-from="${escapeHtml(b.created_at)}">--:--</span>
+         </div>`
+      : '';
+    const ctaText = CTA_PRIMARY[eff] || 'คลิกเพื่อดูรายละเอียด';
+    const ctaClass = CTA_SECONDARY_STATUSES.has(eff) ? 'card-cta secondary' : 'card-cta';
+
+    const card = document.createElement('div');
+    card.className = 'booking-card';
+    card.style.cursor = 'pointer';
+    card.innerHTML = `
+      <div class="booking-card-head">
+        <div>
+          <div class="booking-card-title">${fmtDateLong(b.booking_date)}</div>
+          <div class="booking-card-meta">${fmtSlot(b.time_slot)} · ${b.num_people} คน</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+          <span class="badge ${s.badge}">${s.label}</span>
+          ${transferTag}
+        </div>
+      </div>
+      <div style="font-size:12px; color:var(--muted);">${escapeHtml(b.name)}</div>
+      ${countdownRow}
+      <div class="${ctaClass}">${ctaText}</div>
+    `;
+    card.onclick = () => { state.lkCurrent = b; renderLkDetail(); showLstep('detail'); };
+    root.appendChild(card);
+  }
+
+  // Activate any countdowns the new cards introduced
+  startAllCountdowns();
+}
+
+$('lk-back-phone').onclick = () => { state.lkBookings = []; showLstep('phone'); };
+$('lk-back-list').onclick = () => { showLstep('list'); };
+
+function renderLkDetail() {
+  const b = state.lkCurrent;
+  renderStatusBlock(b, $('lk-detail-status'));
+  renderSummaryRows(b, $('lk-detail-summary'));
+
+  // Hide pay/upload section once verified, used, or cancelled
+  const paySection = $('lk-pay-section');
+  if (b.payment_status === 'verified' || b.payment_status === 'cancelled' || b.used) {
+    paySection.style.display = 'none';
+  } else {
+    paySection.style.display = 'block';
+    const bank = state.config.bank;
+    $('lk-pay-total').textContent = fmtBaht(bank.price_per_person * b.num_people);
+    applyPaymentDisplay({
+      topTextEl: $('lk-pay-top-text'),
+      imageEl:   $('lk-pay-image'),
+      bankWrap:  $('lk-pay-bank-section'),
+      bankEl:    $('lk-pay-bank'),
+      nameEl:    $('lk-pay-name'),
+      noEl:      $('lk-pay-no'),
+      bank,
+    });
+    $('lk-slip').value = '';
+    $('lk-slip-preview').style.display = 'none';
+    $('lk-upload-label').classList.remove('has-file');
+    $('lk-upload-slip').disabled = true;
+    state.lkSlipFile = null;
+  }
+}
+
+wireFilePicker('lk-slip', 'lk-upload-label', 'lk-slip-preview', (file) => {
+  state.lkSlipFile = file;
+  $('lk-upload-slip').disabled = false;
+});
+
+$('lk-upload-slip').onclick = async () => {
+  if (!state.lkSlipFile || !state.lkCurrent) return;
+  const btn = $('lk-upload-slip');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  try {
+    const fd = new FormData();
+    fd.append('slip', state.lkSlipFile);
+    fd.append('phone', state.lkCurrent.phone);
+    const res = await fetch(`/api/booking/${state.lkCurrent.id}/slip`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) { showAlert(data.message || 'อัปโหลดไม่สำเร็จ'); return; }
+    state.lkCurrent = data;
+    // Refresh list too
+    const idx = state.lkBookings.findIndex(x => x.id === data.id);
+    if (idx >= 0) state.lkBookings[idx] = data;
+    renderLkDetail();
+    showAlert('ส่งสลิปเรียบร้อยแล้ว รอการตรวจสอบ', 'success');
+    // Bring the success banner into view — the upload button sits low
+    // on the page after rendering, so the toast at the top is otherwise
+    // off-screen.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch {
+    showAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+  } finally {
+    btn.disabled = false; btn.textContent = 'ส่งสลิป';
+  }
+};
+
+updatePeople();
+
+// ─── Dynamic banner loader ─────────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('/api/banner');
+    if (!res.ok) return;
+    const meta = await res.json();
+    if (!meta.exists) return;
+    const img = $('kv-banner-img');
+    img.onload = () => {
+      img.style.display = 'block';
+      $('kv-fallback').style.display = 'none';
+    };
+    img.onerror = () => { /* keep fallback */ };
+    img.src = '/banner?v=' + encodeURIComponent(meta.uploaded_at || Date.now());
+  } catch { /* keep fallback */ }
+})();
+
+// ─── Site open/closed gate + flip-clock countdown ──────────
+let closedCountdownTimer = null;
+function updateFlipCard(id, newVal) {
+  const el = $(id);
+  if (!el || el.textContent === newVal) return;
+  const card = el.closest('.flip-card');
+  if (card) {
+    card.classList.remove('flip');
+    void card.offsetWidth; // restart animation
+    card.classList.add('flip');
+  }
+  el.textContent = newVal;
+}
+function stopClosedCountdown() {
+  if (closedCountdownTimer) { clearInterval(closedCountdownTimer); closedCountdownTimer = null; }
+}
+function startClosedCountdown(targetISODate) {
+  stopClosedCountdown();
+  const target = new Date(targetISODate + 'T00:00:00').getTime();
+  function tick() {
+    const remaining = target - Date.now();
+    if (remaining <= 0) {
+      stopClosedCountdown();
+      checkSiteState(); // refetch — server may now report 'open'
+      return;
+    }
+    const d = Math.floor(remaining / 86400000);
+    const h = Math.floor((remaining % 86400000) / 3600000);
+    const m = Math.floor((remaining % 3600000) / 60000);
+    const s = Math.floor((remaining % 60000) / 1000);
+    updateFlipCard('flip-days',    String(d));
+    updateFlipCard('flip-hours',   String(h).padStart(2, '0'));
+    updateFlipCard('flip-minutes', String(m).padStart(2, '0'));
+    updateFlipCard('flip-seconds', String(s).padStart(2, '0'));
+  }
+  tick();
+  closedCountdownTimer = setInterval(tick, 1000);
+}
+function applySiteState(site) {
+  const view = $('view-new');
+  const closed = $('closed-screen');
+  if (site.is_open) {
+    view.classList.remove('site-closed');
+    closed.style.display = 'none';
+    stopClosedCountdown();
+    // Lazy-load the date grid the first time the site goes open
+    if (!state.availability) {
+      loadAvailability().then(renderDates).catch(() => {});
+    }
+    return;
+  }
+  view.classList.add('site-closed');
+  closed.style.display = 'block';
+  if (site.state === 'closed-pre') {
+    $('closed-icon').textContent = '⏰';
+    $('closed-title').textContent = 'ยังไม่เปิดให้จอง';
+    $('closed-sub').textContent = 'สถานีทุเรียนไอยรา จะเปิดให้จองในวันที่';
+    $('closed-date').textContent = fmtDateLong(site.booking_start_date);
+    $('flip-clock').style.display = 'flex';
+    startClosedCountdown(site.booking_start_date);
+  } else if (site.state === 'closed-post') {
+    $('closed-icon').textContent = '🚫';
+    $('closed-title').textContent = 'หมดเขตจอง';
+    $('closed-sub').textContent = 'การจองในรอบนี้ปิดรับแล้ว';
+    $('closed-date').textContent = '';
+    $('flip-clock').style.display = 'none';
+    stopClosedCountdown();
+  } else {
+    // closed-manual
+    $('closed-icon').textContent = '🔒';
+    $('closed-title').textContent = 'ปิดให้บริการชั่วคราว';
+    $('closed-sub').textContent = 'ขออภัย ขณะนี้เว็บไซต์ปิดปรับปรุง กรุณากลับมาใหม่อีกครั้ง';
+    $('closed-date').textContent = '';
+    $('flip-clock').style.display = 'none';
+    stopClosedCountdown();
+  }
+}
+async function checkSiteState() {
+  try {
+    const res = await fetch('/api/site-state');
+    if (!res.ok) return;
+    applySiteState(await res.json());
+  } catch { /* leave UI as-is on network blip */ }
+}
+$('closed-go-lookup').onclick = (e) => {
+  e.preventDefault();
+  document.querySelector('.tab[data-mode="lookup"]').click();
+};
+checkSiteState();
+// Re-check every 60s so the page wakes up when the open date arrives
+setInterval(checkSiteState, 60000);
+</script>
+</body>
+</html>
