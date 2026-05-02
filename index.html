@@ -3,562 +3,492 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>แบบฟอร์มลงทะเบียน</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/airbnb.css">
+<title>ระบบให้คะแนนเพื่อนในกลุ่ม</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", sans-serif;
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    color: #1f2937;
   }
   .card {
     background: #fff;
     border-radius: 16px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    padding: 32px;
     width: 100%;
-    max-width: 480px;
+    max-width: 560px;
   }
-  h1 {
-    color: #333;
-    margin-bottom: 8px;
-    font-size: 24px;
-  }
-  .subtitle {
-    color: #777;
-    margin-bottom: 24px;
-    font-size: 14px;
-  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
 
-  .progress {
+  .tabs {
     display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 28px;
-  }
-  .progress-step {
-    flex: 1;
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 3px;
-    transition: background 0.3s;
-  }
-  .progress-step.active { background: linear-gradient(90deg, #22c55e, #16a34a); }
-  .progress-text {
-    font-size: 12px;
-    color: #888;
-    margin-bottom: 12px;
-    text-align: right;
-  }
-
-  .step { display: none; animation: slideIn 0.3s ease-out; }
-  .step.active { display: block; }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  .step-question {
-    font-size: 20px;
-    color: #1f2937;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  .step-hint {
-    color: #6b7280;
-    font-size: 14px;
+    gap: 4px;
     margin-bottom: 20px;
+    background: #f3f4f6;
+    border-radius: 10px;
+    padding: 4px;
   }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    transition: all .2s;
+  }
+  .tab.active { background: #fff; color: #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
+  label { display:block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #374151; }
   input {
     width: 100%;
-    padding: 14px 16px;
-    border: 2px solid #e0e0e0;
+    padding: 11px 14px;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.2s;
+    font-size: 15px;
     font-family: inherit;
-    background: #fff;
+    transition: border-color .2s, box-shadow .2s;
   }
-  input:focus {
-    outline: none;
-    border-color: #16a34a;
-  }
-  input[readonly] { cursor: pointer; background: #fafbfc; }
+  input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+  .field { margin-bottom: 14px; }
+  .error { color: #dc2626; font-size: 13px; margin-top: 4px; min-height: 18px; }
 
-  .age-display {
-    margin-top: 12px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-    border-radius: 8px;
-    text-align: center;
-    color: #15803d;
-    font-weight: 600;
-    display: none;
-  }
-  .age-display.show { display: block; animation: fadeIn 0.3s; }
-  .age-number { font-size: 28px; color: #16a34a; }
-  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-  .error {
-    color: #e53935;
-    font-size: 13px;
-    margin-top: 6px;
-    min-height: 18px;
-  }
-
-  .btn-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 28px;
-  }
-  button {
-    flex: 1;
-    padding: 14px;
+  button.primary {
+    width: 100%;
+    padding: 13px;
+    background: #6366f1;
+    color: #fff;
     border: none;
     border-radius: 8px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
-    font-family: inherit;
+    margin-top: 8px;
+    transition: background .15s, transform .1s;
   }
-  .btn-primary {
-    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-    color: #fff;
-  }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .btn-secondary {
-    background: #f0f0f0;
-    color: #444;
-  }
-  button:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  button.primary:hover:not(:disabled) { background: #4f46e5; }
+  button.primary:active:not(:disabled) { transform: translateY(1px); }
+  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
 
-  .report-link {
-    display: block;
-    text-align: center;
-    margin-top: 18px;
-    color: #16a34a;
-    text-decoration: none;
-    font-size: 14px;
-  }
-  .report-link:hover { text-decoration: underline; }
-
-  .success { text-align: center; padding: 20px 0; }
-  .success-icon {
-    width: 72px; height: 72px;
-    margin: 0 auto 16px;
-    border-radius: 50%;
-    background: #10b981;
-    color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 40px;
-  }
-  .success h2 { color: #1f2937; margin-bottom: 8px; }
-  .success p { color: #6b7280; margin-bottom: 24px; }
-  .summary {
-    background: #f9fafb;
+  .alert {
+    padding: 12px 14px;
     border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 20px;
-    text-align: left;
+    font-size: 14px;
+    margin-bottom: 14px;
   }
-  .summary-row {
+  .alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+  .alert.info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+  .alert.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+
+  .user-bar {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
-    border-bottom: 1px solid #f0f0f0;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    margin-bottom: 18px;
     font-size: 14px;
   }
-  .summary-row:last-child { border-bottom: none; }
-  .summary-label { color: #6b7280; }
-  .summary-value { color: #1f2937; font-weight: 500; }
-
-  .toast {
-    position: fixed;
-    top: 20px; right: 20px;
-    background: #4caf50;
-    color: #fff;
-    padding: 14px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    transform: translateX(150%);
-    transition: transform 0.3s;
-    z-index: 100;
+  .user-bar .name { font-weight: 600; }
+  .user-bar .meta { color: #6b7280; font-size: 13px; }
+  .logout {
+    background: transparent;
+    color: #6b7280;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
   }
-  .toast.show { transform: translateX(0); }
+  .logout:hover { background: #fff; color: #1f2937; }
 
-  /* Flatpickr customization */
-  .flatpickr-calendar { font-family: inherit; }
+  .waiting {
+    text-align: center;
+    padding: 40px 16px;
+  }
+  .waiting .icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+  }
+  .pulse {
+    display: inline-block;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: #22c55e;
+    margin-right: 8px;
+    animation: pulse 1.4s infinite;
+  }
+  .pulse.gray { background: #9ca3af; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .5; transform: scale(1.3); }
+  }
+
+  .vote-row {
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 10px;
+    transition: border-color .15s;
+  }
+  .vote-row.done { border-color: #22c55e; background: #f0fdf4; }
+  .vote-row .who {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .vote-row .name { font-weight: 600; }
+  .vote-row .sid { color: #6b7280; font-size: 13px; }
+  .stars { display: flex; gap: 6px; }
+  .star {
+    flex: 1;
+    padding: 8px 0;
+    text-align: center;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    background: #fff;
+    color: #6b7280;
+    transition: all .15s;
+    user-select: none;
+  }
+  .star:hover { border-color: #6366f1; color: #6366f1; }
+  .star.selected { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+  .progress-text { font-size: 13px; color: #6b7280; margin-bottom: 14px; }
+  .footer-link {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 13px;
+    color: #6b7280;
+  }
+  .footer-link a { color: #6366f1; text-decoration: none; }
+  .footer-link a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>แบบฟอร์มลงทะเบียน</h1>
-    <p class="subtitle">กรุณากรอกข้อมูลทีละขั้นตอน</p>
+  <div class="card" id="app"></div>
 
-    <div class="progress-text" id="progressText">ขั้นตอนที่ 1 จาก 4</div>
-    <div class="progress">
-      <div class="progress-step active" data-step="1"></div>
-      <div class="progress-step" data-step="2"></div>
-      <div class="progress-step" data-step="3"></div>
-      <div class="progress-step" data-step="4"></div>
-    </div>
-
-    <form id="regForm" novalidate>
-      <!-- Step 1: Date of Birth -->
-      <div class="step active" data-step="1">
-        <div class="step-question">วันเกิดของคุณละ?</div>
-        <div class="step-hint">เลือกวันเกิดเพื่อคำนวณอายุของคุณ</div>
-        <input type="text" id="dob" name="dob" placeholder="คลิกเพื่อเลือกวันเกิด" readonly />
-        <div class="error" id="err-dob"></div>
-        <div class="age-display" id="ageDisplay">
-          อายุของคุณคือ <span class="age-number" id="ageNumber">0</span> ปี
-        </div>
-        <div class="btn-row">
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
-      </div>
-
-      <!-- Step 2: Name -->
-      <div class="step" data-step="2">
-        <div class="step-question">คุณชื่ออะไร?</div>
-        <div class="step-hint">กรุณากรอกชื่อ-นามสกุลของคุณ</div>
-        <input type="text" id="name" name="name" placeholder="เช่น สมชาย ใจดี" autocomplete="name" />
-        <div class="error" id="err-name"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
-      </div>
-
-      <!-- Step 3: Email -->
-      <div class="step" data-step="3">
-        <div class="step-question">อีเมลของคุณคือ?</div>
-        <div class="step-hint">เราจะใช้อีเมลนี้ในการติดต่อกลับ</div>
-        <input type="email" id="email" name="email" placeholder="example@email.com" autocomplete="email" />
-        <div class="error" id="err-email"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="button" class="btn-primary" data-action="next">ถัดไป →</button>
-        </div>
-      </div>
-
-      <!-- Step 4: Phone -->
-      <div class="step" data-step="4">
-        <div class="step-question">เบอร์โทรศัพท์ของคุณ?</div>
-        <div class="step-hint">เพื่อการติดต่อสื่อสารที่รวดเร็ว</div>
-        <input type="tel" id="phone" name="phone" placeholder="08X-XXX-XXXX" autocomplete="tel" />
-        <div class="error" id="err-phone"></div>
-        <div class="btn-row">
-          <button type="button" class="btn-secondary" data-action="prev">← ย้อนกลับ</button>
-          <button type="submit" class="btn-primary">ลงทะเบียน ✓</button>
-        </div>
-      </div>
-
-      <!-- Step 5: Success -->
-      <div class="step" data-step="5">
-        <div class="success">
-          <div class="success-icon">✓</div>
-          <h2>ลงทะเบียนสำเร็จ!</h2>
-          <p>ขอบคุณที่ลงทะเบียนกับเรา</p>
-          <div class="summary" id="summary"></div>
-          <div class="btn-row">
-            <button type="button" class="btn-secondary" data-action="restart">ลงทะเบียนใหม่</button>
-            <a href="report.html" style="flex:1;text-decoration:none;">
-              <button type="button" class="btn-primary" style="width:100%;">ดูรายงาน</button>
-            </a>
-          </div>
-        </div>
-      </div>
-    </form>
-
-    <a href="report.html" class="report-link" id="reportLink">ดูรายชื่อผู้ลงทะเบียนทั้งหมด →</a>
-  </div>
-
-  <div class="toast" id="toast">บันทึกข้อมูลเรียบร้อย</div>
-
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.js"></script>
-<script src="https://npmcdn.com/flatpickr/dist/l10n/th.js"></script>
 <script>
-  const API_BASE = '/api';
-  const form = document.getElementById('regForm');
-  const toast = document.getElementById('toast');
-  const progressText = document.getElementById('progressText');
-  const progressSteps = document.querySelectorAll('.progress-step');
-  const reportLink = document.getElementById('reportLink');
-  const ageDisplay = document.getElementById('ageDisplay');
-  const ageNumber = document.getElementById('ageNumber');
+const $ = sel => document.querySelector(sel);
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
 
-  let currentStep = 1;
-  const TOTAL_STEPS = 4;
-  let selectedDob = null;
+const state = {
+  user: null,           // {student_id, name, group_name}
+  view: 'auth',         // auth | waiting | voting | done
+  members: [],
+  votes: {},            // student_id -> 1..5
+  pollTimer: null,
+};
 
-  // Initialize flatpickr (popular, lightweight, mobile-friendly date picker)
-  const today = new Date();
-  const maxDate = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-  const minDate = new Date(today.getFullYear() - 120, 0, 1);
+function loadSession() {
+  try {
+    const raw = localStorage.getItem('vote_user');
+    if (raw) state.user = JSON.parse(raw);
+  } catch {}
+}
+function saveSession(u) {
+  state.user = u;
+  if (u) localStorage.setItem('vote_user', JSON.stringify(u));
+  else localStorage.removeItem('vote_user');
+}
 
-  const fp = flatpickr('#dob', {
-    locale: 'th',
-    dateFormat: 'd M Y',
-    maxDate: maxDate,
-    minDate: minDate,
-    defaultDate: new Date(today.getFullYear() - 25, 0, 1),
-    disableMobile: false,
-    onChange: function(dates) {
-      if (dates.length === 0) return;
-      selectedDob = dates[0];
-      const age = calculateAge(selectedDob);
-      ageNumber.textContent = age;
-      ageDisplay.classList.add('show');
-      showError('dob', '');
-      document.getElementById('dob').style.borderColor = '#10b981';
-    }
+async function api(method, url, body) {
+  const opts = { method, headers: {} };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  let data = null;
+  try { data = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, data };
+}
+
+// --- Views ---
+
+function renderAuth(activeTab = 'register', msg = '') {
+  const app = $('#app');
+  app.innerHTML = `
+    <h1>ระบบให้คะแนนเพื่อนในกลุ่ม</h1>
+    <p class="subtitle">ลงทะเบียนหรือเข้าสู่ระบบเพื่อเริ่มต้น</p>
+    <div class="tabs">
+      <div class="tab ${activeTab==='register'?'active':''}" data-tab="register">ลงทะเบียน</div>
+      <div class="tab ${activeTab==='login'?'active':''}" data-tab="login">เข้าสู่ระบบ</div>
+    </div>
+    ${msg ? `<div class="alert error">${escapeHtml(msg)}</div>` : ''}
+    <div id="form-host"></div>
+    <div class="footer-link"><a href="admin.html">เข้าสู่ระบบหลังบ้าน →</a></div>
+  `;
+  app.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => renderAuth(t.dataset.tab));
   });
+  if (activeTab === 'register') renderRegisterForm();
+  else renderLoginForm();
+}
 
-  function calculateAge(birthDate) {
-    const now = new Date();
-    let age = now.getFullYear() - birthDate.getFullYear();
-    const m = now.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < birthDate.getDate())) age--;
-    return age;
-  }
-
-  function fmtDob(date) {
-    return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-  }
-
-  function showError(field, msg) {
-    document.getElementById('err-' + field).textContent = msg;
-  }
-  function setBorder(field, color) {
-    form[field].style.borderColor = color || '';
-  }
-  function showToast(msg, color) {
-    toast.textContent = msg;
-    toast.style.background = color || '#4caf50';
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
-  }
-  function normalizePhone(p) {
-    return p.replace(/[\s\-+()]/g, '');
-  }
-
-  // Debounced async duplicate check via API
-  let checkTimer = null;
-  async function checkDuplicate(field, value) {
-    try {
-      const url = new URL(API_BASE + '/check', window.location.origin);
-      url.searchParams.set(field, value);
-      const res = await fetch(url);
-      if (!res.ok) return false;
-      const data = await res.json();
-      return field === 'email' ? data.emailExists : data.phoneExists;
-    } catch (err) {
-      console.error('check failed', err);
-      return false;
-    }
-  }
-  function debouncedCheck(field, value, onResult) {
-    clearTimeout(checkTimer);
-    checkTimer = setTimeout(async () => {
-      const dup = await checkDuplicate(field, value);
-      onResult(dup);
-    }, 350);
-  }
-
-  function gotoStep(n) {
-    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-    document.querySelector(`.step[data-step="${n}"]`).classList.add('active');
-    currentStep = n;
-
-    if (n <= TOTAL_STEPS) {
-      progressText.textContent = `ขั้นตอนที่ ${n} จาก ${TOTAL_STEPS}`;
-      progressText.style.display = '';
-      document.querySelector('.progress').style.display = '';
-      progressSteps.forEach(el => {
-        const s = Number(el.dataset.step);
-        el.classList.toggle('active', s <= n);
-      });
-      reportLink.style.display = '';
-      const input = document.querySelector(`.step[data-step="${n}"] input:not([readonly])`);
-      if (input) setTimeout(() => input.focus(), 100);
+function renderRegisterForm() {
+  $('#form-host').innerHTML = `
+    <div class="field">
+      <label>รหัสนักศึกษา</label>
+      <input id="r-sid" placeholder="เช่น 6512345678" autocomplete="off" />
+      <div class="error" id="e-sid"></div>
+    </div>
+    <div class="field">
+      <label>ชื่อ-นามสกุล</label>
+      <input id="r-name" placeholder="ชื่อ นามสกุล" autocomplete="off" />
+      <div class="error" id="e-name"></div>
+    </div>
+    <div class="field">
+      <label>กลุ่ม</label>
+      <input id="r-group" placeholder="เช่น A, B หรือ กลุ่ม 1" autocomplete="off" />
+      <div class="error" id="e-group"></div>
+    </div>
+    <button class="primary" id="btn-register">ลงทะเบียน</button>
+  `;
+  $('#btn-register').addEventListener('click', async () => {
+    const sid = $('#r-sid').value.trim();
+    const name = $('#r-name').value.trim();
+    const group = $('#r-group').value.trim();
+    $('#e-sid').textContent = sid ? '' : 'กรุณากรอก';
+    $('#e-name').textContent = name ? '' : 'กรุณากรอก';
+    $('#e-group').textContent = group ? '' : 'กรุณากรอก';
+    if (!sid || !name || !group) return;
+    const btn = $('#btn-register'); btn.disabled = true;
+    const res = await api('POST', '/api/register', { student_id: sid, name, group_name: group });
+    btn.disabled = false;
+    if (res.ok) {
+      saveSession(res.data.user);
+      goWaiting();
     } else {
-      progressText.style.display = 'none';
-      document.querySelector('.progress').style.display = 'none';
-      reportLink.style.display = 'none';
+      const msg = res.data && res.data.message ? res.data.message : 'ลงทะเบียนไม่สำเร็จ';
+      renderAuth('register', msg);
     }
+  });
+}
+
+function renderLoginForm() {
+  $('#form-host').innerHTML = `
+    <div class="field">
+      <label>รหัสนักศึกษา</label>
+      <input id="l-sid" placeholder="กรอกรหัสนักศึกษา" autocomplete="off" />
+      <div class="error" id="e-l-sid"></div>
+    </div>
+    <button class="primary" id="btn-login">เข้าสู่ระบบ</button>
+  `;
+  $('#btn-login').addEventListener('click', async () => {
+    const sid = $('#l-sid').value.trim();
+    if (!sid) { $('#e-l-sid').textContent = 'กรุณากรอก'; return; }
+    const btn = $('#btn-login'); btn.disabled = true;
+    const res = await api('POST', '/api/login', { student_id: sid });
+    btn.disabled = false;
+    if (res.ok) {
+      saveSession(res.data.user);
+      goWaiting();
+    } else {
+      const msg = res.data && res.data.message ? res.data.message : 'เข้าสู่ระบบไม่สำเร็จ';
+      renderAuth('login', msg);
+    }
+  });
+}
+
+function userBar() {
+  const u = state.user;
+  return `
+    <div class="user-bar">
+      <div>
+        <div class="name">${escapeHtml(u.name)}</div>
+        <div class="meta">รหัส ${escapeHtml(u.student_id)} · กลุ่ม ${escapeHtml(u.group_name)}</div>
+      </div>
+      <button class="logout" id="btn-logout">ออกจากระบบ</button>
+    </div>
+  `;
+}
+
+function bindLogout() {
+  const b = $('#btn-logout');
+  if (b) b.addEventListener('click', () => {
+    stopPolling();
+    saveSession(null);
+    state.view = 'auth';
+    renderAuth();
+  });
+}
+
+function goWaiting() {
+  state.view = 'waiting';
+  renderWaiting('init');
+  startPolling();
+}
+
+function renderWaiting(status) {
+  const isOpen = status === 'open';
+  $('#app').innerHTML = `
+    ${userBar()}
+    <div class="waiting">
+      <div class="icon">${isOpen ? '✅' : '⏳'}</div>
+      <h1>${isOpen ? 'เปิดให้โหวตแล้ว' : 'รอระบบเปิดให้โหวต'}</h1>
+      <p class="subtitle">
+        <span class="pulse ${isOpen ? '' : 'gray'}"></span>
+        ${isOpen ? 'กำลังโหลดรายชื่อ...' : 'หน้าจอจะอัปเดตอัตโนมัติเมื่อระบบเปิด'}
+      </p>
+    </div>
+  `;
+  bindLogout();
+}
+
+function renderDone() {
+  state.view = 'done';
+  $('#app').innerHTML = `
+    ${userBar()}
+    <div class="waiting">
+      <div class="icon">🎉</div>
+      <h1>ส่งคะแนนเรียบร้อย</h1>
+      <p class="subtitle">ขอบคุณที่ให้คะแนนเพื่อนในกลุ่มของคุณ</p>
+    </div>
+  `;
+  bindLogout();
+}
+
+async function startPolling() {
+  stopPolling();
+  const tick = async () => {
+    if (!state.user || (state.view !== 'waiting')) return;
+    const res = await api('GET', `/api/voting-status?student_id=${encodeURIComponent(state.user.student_id)}`);
+    if (!res.ok) return;
+    if (res.data.submitted) { stopPolling(); renderDone(); return; }
+    if (res.data.open) { stopPolling(); await loadAndRenderVoting(); return; }
+  };
+  await tick();
+  state.pollTimer = setInterval(tick, 3000);
+}
+function stopPolling() {
+  if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; }
+}
+
+async function loadAndRenderVoting() {
+  const res = await api('GET', `/api/group-members?student_id=${encodeURIComponent(state.user.student_id)}`);
+  if (!res.ok) {
+    state.view = 'waiting';
+    renderWaiting('init');
+    startPolling();
+    return;
   }
-
-  async function validateStep(n) {
-    if (n === 1) {
-      if (!selectedDob) {
-        showError('dob', 'กรุณาเลือกวันเกิด');
-        setBorder('dob', '#ef4444');
-        return false;
-      }
-      const age = calculateAge(selectedDob);
-      if (age < 1 || age > 120) {
-        showError('dob', 'อายุไม่ถูกต้อง');
-        setBorder('dob', '#ef4444');
-        return false;
-      }
-      showError('dob', ''); setBorder('dob', '#10b981');
-      return true;
-    }
-    if (n === 2) {
-      const v = form.name.value.trim();
-      if (!v) { showError('name', 'กรุณากรอกชื่อ'); setBorder('name', '#ef4444'); return false; }
-      showError('name', ''); setBorder('name', '#10b981');
-      return true;
-    }
-    if (n === 3) {
-      const v = form.email.value.trim();
-      if (!v) { showError('email', 'กรุณากรอกอีเมล'); setBorder('email', '#ef4444'); return false; }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
-        showError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); setBorder('email', '#ef4444'); return false;
-      }
-      const dup = await checkDuplicate('email', v);
-      if (dup) {
-        showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); return false;
-      }
-      showError('email', ''); setBorder('email', '#10b981');
-      return true;
-    }
-    if (n === 4) {
-      const v = form.phone.value.trim();
-      if (!v) { showError('phone', 'กรุณากรอกเบอร์โทร'); setBorder('phone', '#ef4444'); return false; }
-      if (!/^[0-9\-+\s()]{9,15}$/.test(v)) {
-        showError('phone', 'เบอร์โทรไม่ถูกต้อง'); setBorder('phone', '#ef4444'); return false;
-      }
-      const dup = await checkDuplicate('phone', v);
-      if (dup) {
-        showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); return false;
-      }
-      showError('phone', ''); setBorder('phone', '#10b981');
-      return true;
-    }
-    return true;
+  state.members = res.data.members || [];
+  state.votes = {};
+  state.view = 'voting';
+  if (state.members.length === 0) {
+    $('#app').innerHTML = `
+      ${userBar()}
+      <div class="alert info">ยังไม่มีเพื่อนในกลุ่มของคุณลงทะเบียน</div>
+    `;
+    bindLogout();
+    return;
   }
+  renderVoting();
+}
 
-  // Realtime feedback on email/phone (debounced API check)
-  form.email.addEventListener('input', () => {
-    const v = form.email.value.trim();
-    if (!v) { showError('email', ''); setBorder('email', ''); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return;
-    debouncedCheck('email', v, (dup) => {
-      if (form.email.value.trim() !== v) return;
-      if (dup) { showError('email', '⚠ อีเมลนี้ถูกลงทะเบียนแล้ว'); setBorder('email', '#ef4444'); }
-      else { showError('email', ''); setBorder('email', '#10b981'); }
-    });
-  });
-  form.phone.addEventListener('input', () => {
-    const v = form.phone.value.trim();
-    if (!v) { showError('phone', ''); setBorder('phone', ''); return; }
-    if (!/^[0-9\-+\s()]{9,15}$/.test(v)) return;
-    debouncedCheck('phone', v, (dup) => {
-      if (form.phone.value.trim() !== v) return;
-      if (dup) { showError('phone', '⚠ เบอร์โทรนี้ถูกลงทะเบียนแล้ว'); setBorder('phone', '#ef4444'); }
-      else { showError('phone', ''); setBorder('phone', '#10b981'); }
-    });
-  });
-  form.name.addEventListener('input', () => {
-    if (form.name.value.trim()) { showError('name', ''); setBorder('name', ''); }
-  });
+function renderVoting() {
+  const total = state.members.length;
+  const done = Object.keys(state.votes).length;
+  const allDone = done === total;
+  $('#app').innerHTML = `
+    ${userBar()}
+    <h1>ให้คะแนนเพื่อนในกลุ่ม</h1>
+    <p class="subtitle">เลือกคะแนน 1-5 สำหรับเพื่อนแต่ละคน</p>
+    <div class="progress-text">ให้คะแนนแล้ว <strong id="prog">${done}</strong> / ${total} คน</div>
+    <div id="vote-list">
+      ${state.members.map(m => renderVoteRow(m)).join('')}
+    </div>
+    <button class="primary" id="btn-submit" ${allDone ? '' : 'disabled'}>
+      ${allDone ? 'ยืนยันคะแนน' : `กรุณาให้คะแนนให้ครบ (${total - done} คน)`}
+    </button>
+  `;
+  bindLogout();
+  bindStars();
+  $('#btn-submit').addEventListener('click', submitVotes);
+}
 
-  // Button handlers
-  form.addEventListener('click', async (e) => {
-    const action = e.target.dataset.action;
-    if (action === 'next') {
-      e.target.disabled = true;
-      const ok = await validateStep(currentStep);
-      e.target.disabled = false;
-      if (ok) gotoStep(currentStep + 1);
-    } else if (action === 'prev') {
-      gotoStep(currentStep - 1);
-    } else if (action === 'restart') {
-      form.reset();
-      fp.clear();
-      selectedDob = null;
-      ageDisplay.classList.remove('show');
-      ['dob','name','email','phone'].forEach(f => { showError(f, ''); setBorder(f, ''); });
-      gotoStep(1);
-    }
-  });
+function renderVoteRow(m) {
+  const cur = state.votes[m.student_id];
+  return `
+    <div class="vote-row ${cur ? 'done' : ''}" data-sid="${escapeHtml(m.student_id)}">
+      <div class="who">
+        <div>
+          <div class="name">${escapeHtml(m.name)}</div>
+          <div class="sid">รหัส ${escapeHtml(m.student_id)}</div>
+        </div>
+      </div>
+      <div class="stars" data-sid="${escapeHtml(m.student_id)}">
+        ${[1,2,3,4,5].map(n =>
+          `<div class="star ${cur===n?'selected':''}" data-score="${n}">${n}</div>`
+        ).join('')}
+      </div>
+    </div>
+  `;
+}
 
-  // Enter key advances
-  form.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter' && currentStep < TOTAL_STEPS) {
-      e.preventDefault();
-      if (await validateStep(currentStep)) gotoStep(currentStep + 1);
-    }
-  });
-
-  // Final submit — POST to API
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    for (let s = 1; s <= TOTAL_STEPS; s++) {
-      if (!(await validateStep(s))) { gotoStep(s); return; }
-    }
-
-    const submitBtn = form.querySelector('[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'กำลังบันทึก...';
-
-    const payload = {
-      dob: selectedDob.toISOString(),
-      age: calculateAge(selectedDob),
-      name: form.name.value.trim(),
-      email: form.email.value.trim(),
-      phone: form.phone.value.trim(),
-    };
-
-    try {
-      const res = await fetch(API_BASE + '/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+function bindStars() {
+  document.querySelectorAll('.stars').forEach(group => {
+    const sid = group.dataset.sid;
+    group.querySelectorAll('.star').forEach(star => {
+      star.addEventListener('click', () => {
+        state.votes[sid] = Number(star.dataset.score);
+        // update just this row + button to keep it snappy
+        const row = group.closest('.vote-row');
+        row.classList.add('done');
+        group.querySelectorAll('.star').forEach(s => s.classList.toggle('selected', Number(s.dataset.score) === state.votes[sid]));
+        const done = Object.keys(state.votes).length;
+        const total = state.members.length;
+        $('#prog').textContent = done;
+        const btn = $('#btn-submit');
+        if (done === total) {
+          btn.disabled = false;
+          btn.textContent = 'ยืนยันคะแนน';
+        } else {
+          btn.disabled = true;
+          btn.textContent = `กรุณาให้คะแนนให้ครบ (${total - done} คน)`;
+        }
       });
-
-      if (res.status === 201) {
-        document.getElementById('summary').innerHTML = `
-          <div class="summary-row"><span class="summary-label">วันเกิด</span><span class="summary-value">${fmtDob(selectedDob)}</span></div>
-          <div class="summary-row"><span class="summary-label">อายุ</span><span class="summary-value">${payload.age} ปี</span></div>
-          <div class="summary-row"><span class="summary-label">ชื่อ</span><span class="summary-value">${payload.name}</span></div>
-          <div class="summary-row"><span class="summary-label">อีเมล</span><span class="summary-value">${payload.email}</span></div>
-          <div class="summary-row"><span class="summary-label">เบอร์โทร</span><span class="summary-value">${payload.phone}</span></div>
-        `;
-        showToast('ลงทะเบียนสำเร็จ ✓');
-        gotoStep(5);
-      } else if (res.status === 409) {
-        const data = await res.json();
-        const field = data.field;
-        showError(field, '⚠ ' + (data.message || 'ข้อมูลซ้ำ'));
-        setBorder(field, '#ef4444');
-        gotoStep(field === 'email' ? 3 : 4);
-        showToast('ไม่สามารถลงทะเบียนซ้ำได้', '#ef4444');
-      } else {
-        const data = await res.json().catch(() => ({}));
-        showToast(data.message || 'เกิดข้อผิดพลาด', '#ef4444');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์', '#ef4444');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
-    }
+    });
   });
+}
 
-  gotoStep(1);
+async function submitVotes() {
+  if (Object.keys(state.votes).length !== state.members.length) return;
+  if (!confirm('ยืนยันส่งคะแนน? เมื่อยืนยันแล้วจะแก้ไขไม่ได้')) return;
+  const btn = $('#btn-submit'); btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  const payload = {
+    student_id: state.user.student_id,
+    votes: Object.entries(state.votes).map(([target_student_id, score]) => ({ target_student_id, score })),
+  };
+  const res = await api('POST', '/api/vote', payload);
+  if (res.ok) {
+    renderDone();
+  } else {
+    btn.disabled = false; btn.textContent = 'ยืนยันคะแนน';
+    const msg = res.data && res.data.message ? res.data.message : 'ส่งคะแนนไม่สำเร็จ';
+    alert(msg);
+    if (res.status === 403) goWaiting();
+  }
+}
+
+// --- bootstrap ---
+loadSession();
+if (state.user) goWaiting();
+else renderAuth();
 </script>
 </body>
 </html>

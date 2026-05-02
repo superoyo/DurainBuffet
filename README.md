@@ -1,153 +1,59 @@
-# แบบฟอร์มลงทะเบียน + Backend API
+# ระบบให้คะแนนเพื่อนในกลุ่ม
 
-ระบบลงทะเบียนแบบ wizard 4 ขั้นตอน พร้อม backend API และฐานข้อมูล SQLite
+ระบบให้นักศึกษาเข้าสู่ระบบ รอผู้ดูแลเปิดให้โหวต แล้วให้คะแนนเพื่อนในกลุ่มเดียวกัน 1–5 คะแนน
+ฝั่งหลังบ้านดูรายชื่อ ดูคะแนนแต่ละคน คำนวณค่ากลางแบบ Mode และ export เป็น CSV ได้
 
 ## โครงสร้างไฟล์
 
 ```
 survey/
-├── server.js          # Backend API (Express + SQLite)
+├── server.js       # Backend (Express + SQLite, better-sqlite3)
+├── index.html      # หน้านักศึกษา (ลงทะเบียน → รอ → โหวต → ส่ง)
+├── admin.html      # หน้าหลังบ้าน
 ├── package.json
-├── index.html         # หน้าลงทะเบียน (wizard)
-├── report.html        # หน้ารายงาน
-├── registrations.db   # ฐานข้อมูล (สร้างอัตโนมัติ)
+├── voting.db       # ฐานข้อมูล (สร้างอัตโนมัติ)
 └── README.md
 ```
 
-## รันบนเครื่องตัวเอง
+## รัน
 
 ```bash
-# 1. ติดตั้ง dependencies
 npm install
-
-# 2. รัน server
-npm start
-
-# 3. เปิดเบราว์เซอร์
-# http://localhost:3000          → หน้าลงทะเบียน
-# http://localhost:3000/report.html → หน้ารายงาน
+npm start              # http://localhost:3000
 ```
 
-## API Endpoints
+หน้าเว็บ:
+- นักศึกษา → `/` (index.html)
+- หลังบ้าน → `/admin.html` (user: `admin`, pass: `admin123`)
 
-| Method | Path                       | หน้าที่                          |
-|--------|----------------------------|---------------------------------|
-| GET    | `/api/check?email=&phone=` | เช็คอีเมล/เบอร์ซ้ำ (realtime)   |
-| POST   | `/api/register`            | บันทึกผู้ลงทะเบียนใหม่           |
-| GET    | `/api/registrations`       | ดึงรายชื่อทั้งหมด                |
-| DELETE | `/api/registrations/:id`   | ลบรายการเดี่ยว                  |
-| DELETE | `/api/registrations`       | ลบทั้งหมด                       |
-| GET    | `/api/health`              | health check                    |
+ตัวแปรสภาพแวดล้อม (ทั้งหมดมีค่าเริ่มต้น):
+- `PORT` — พอร์ต (default 3000)
+- `ADMIN_USER`, `ADMIN_PASS` — ชื่อผู้ใช้/รหัสผ่าน admin
+- `DATA_DIR` — โฟลเดอร์เก็บฐานข้อมูล
 
----
+## การทำงาน
 
-## Deploy ขึ้น Railway (แนะนำ — ง่ายที่สุด)
+1. นักศึกษาลงทะเบียน (รหัสนักศึกษา + ชื่อ + กลุ่ม) — รหัสซ้ำไม่ได้
+2. หน้าจอรอ — polling ทุก 3 วินาทีเช็คสถานะการเปิดโหวต
+3. ผู้ดูแลกดเปิดโหวตจากหลังบ้าน — นักศึกษาที่รออยู่จะเห็นรายชื่อเพื่อนในกลุ่มเดียวกัน (ไม่รวมตัวเอง)
+4. นักศึกษาให้คะแนน 1–5 สำหรับทุกคน → กดยืนยัน (ส่งซ้ำไม่ได้)
+5. หลังบ้านดูคะแนนรายคน คำนวณ Mode (กรณีเสมอ แสดงทุกค่า) และ export CSV
 
-Railway ฟรี $5 credit/เดือน เพียงพอสำหรับเว็บนี้แน่นอน
+## API
 
-### ขั้นที่ 1 — Push โค้ดขึ้น GitHub
+ฝั่งนักศึกษา:
+- `POST /api/register` `{student_id, name, group_name}`
+- `POST /api/login` `{student_id}`
+- `GET  /api/voting-status?student_id=...` → `{open, submitted}`
+- `GET  /api/group-members?student_id=...` → รายชื่อเพื่อน (เปิดโหวตอยู่เท่านั้น)
+- `POST /api/vote` `{student_id, votes:[{target_student_id, score}]}`
 
-```bash
-cd /Users/anan/Desktop/ClaudeCode/survey
-git init
-git add .
-git commit -m "Initial commit"
-# สร้าง repo ใหม่บน github.com แล้ว:
-git remote add origin https://github.com/USERNAME/REPO.git
-git branch -M main
-git push -u origin main
-```
-
-### ขั้นที่ 2 — Deploy บน Railway
-
-1. ไปที่ https://railway.app → Login ด้วย GitHub
-2. คลิก **New Project** → **Deploy from GitHub repo**
-3. เลือก repo ที่เพิ่ง push
-4. Railway จะ detect Node.js อัตโนมัติ และรัน `npm start`
-5. คลิกที่ service → Settings → **Networking** → **Generate Domain**
-6. ได้ URL ประมาณ `https://your-app.up.railway.app`
-
-### ขั้นที่ 3 — เพิ่ม Persistent Volume (สำคัญมาก!)
-
-โดย default ฐานข้อมูล SQLite จะหายไปทุกครั้งที่ deploy ใหม่ ต้องเพิ่ม volume:
-
-1. ที่ service ใน Railway → **Settings** → **Volumes** → **+ New Volume**
-2. **Mount path:** `/data`
-3. **Variables** → เพิ่ม `DATA_DIR=/data`
-4. Save → Railway จะ redeploy ให้อัตโนมัติ
-
-ตอนนี้ฐานข้อมูลจะถูกเก็บไว้ที่ `/data/registrations.db` และไม่หายเมื่อ deploy ใหม่
-
----
-
-## Deploy ขึ้น Render (ทางเลือก)
-
-1. ไปที่ https://render.com → New → **Web Service**
-2. Connect GitHub repo
-3. ตั้งค่า:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-4. **Disks** (Settings) → Add Disk:
-   - Name: `data`
-   - Mount Path: `/data`
-   - Size: 1 GB
-5. **Environment** → Add: `DATA_DIR=/data`
-6. Deploy
-
-⚠️ Render free tier จะ sleep หลังไม่ใช้ 15 นาที (ครั้งแรกที่เปิดจะช้า ~30 วินาที)
-
----
-
-## Deploy ขึ้น VPS (DigitalOcean, AWS EC2, ฯลฯ)
-
-```bash
-# บน server
-git clone https://github.com/USERNAME/REPO.git
-cd REPO
-npm install
-npm install -g pm2
-
-# รันแบบ daemon
-pm2 start server.js --name registration
-pm2 startup
-pm2 save
-
-# ตั้ง nginx เป็น reverse proxy + SSL ด้วย certbot
-```
-
----
-
-## ⚠️ ข้อควรระวังด้านความปลอดภัย
-
-โค้ดนี้ยังไม่มีระบบ auth — ใครก็สามารถ:
-- เข้าหน้า `/report.html` ดูข้อมูลทุกคนได้
-- เรียก `DELETE /api/registrations` ลบทั้งหมดได้
-- กดเรียก `/api/check` หาว่ามีอีเมลใดในระบบ (enumeration)
-
-**ก่อนเปิดให้คนทั่วไปใช้จริง ควรเพิ่ม:**
-1. **Basic auth** หรือ login สำหรับหน้า report.html
-2. **Rate limiting** เช่น `express-rate-limit`
-3. **CAPTCHA** ป้องกัน bot spam
-4. **HTTPS** (Railway/Render มีให้อัตโนมัติ)
-5. **CORS policy** ถ้าจะแยก frontend/backend
-
-ตัวอย่าง basic auth สำหรับหน้า report:
-```js
-app.use('/report.html', (req, res, next) => {
-  const auth = req.headers.authorization;
-  if (auth !== 'Basic ' + Buffer.from('admin:password').toString('base64')) {
-    res.set('WWW-Authenticate', 'Basic realm="report"');
-    return res.status(401).send('Auth required');
-  }
-  next();
-});
-```
-
----
-
-## Environment Variables
-
-| ตัวแปร     | Default            | คำอธิบาย                     |
-|------------|--------------------|------------------------------|
-| `PORT`     | 3000               | port ที่จะรัน                  |
-| `DATA_DIR` | โฟลเดอร์โปรเจกต์    | ที่เก็บไฟล์ฐานข้อมูล SQLite    |
+ฝั่งหลังบ้าน (Basic Auth):
+- `POST /api/admin/login` `{username, password}` → `{token}` (base64 user:pass)
+- `GET  /api/admin/users` → รายชื่อแยกกลุ่ม
+- `DELETE /api/admin/users/:student_id` — ลบผู้ใช้ + คะแนนที่เกี่ยวข้อง
+- `GET  /api/admin/voting-state` / `POST /api/admin/voting-state` `{open}`
+- `POST /api/admin/reset-votes` — ล้างคะแนนทั้งหมด
+- `GET  /api/admin/scores` — สรุปทุกคน (mode, เฉลี่ย, จำนวน)
+- `GET  /api/admin/votes/:student_id` — รายละเอียดคะแนนที่ได้รับ
+- `GET  /api/admin/export.csv` — ดาวน์โหลด CSV (UTF-8 + BOM)

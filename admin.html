@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>หลังบ้าน - ระบบให้คะแนน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Sukhumvit Set", sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+    color: #0f172a;
+  }
+  header {
+    background: #0f172a;
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { font-size: 18px; }
+  header .right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  header button {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 6px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  header button:hover { background: rgba(255,255,255,.1); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  /* Login card */
+  .login-wrap {
+    min-height: calc(100vh - 56px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    padding: 32px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .login-card h2 { margin-bottom: 4px; }
+  .login-card .subtitle { color: #64748b; font-size: 13px; margin-bottom: 22px; }
+
+  label { display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #334155; }
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+  .field { margin-bottom: 14px; }
+
+  button.primary {
+    background: #6366f1;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  button.primary:hover { background: #4f46e5; }
+  button.primary:disabled { background: #94a3b8; cursor: not-allowed; }
+
+  button.secondary {
+    background: #fff;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.secondary:hover { background: #f8fafc; }
+
+  button.danger {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.danger:hover { background: #dc2626; }
+  button.success {
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.success:hover { background: #15803d; }
+
+  .alert {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+  .alert.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .toolbar {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .voting-status {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 600;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #94a3b8; }
+  .dot.open { background: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.2); }
+  .spacer { flex: 1; }
+
+  .tabs2 {
+    display: flex;
+    gap: 4px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 16px;
+    width: fit-content;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .tab2 {
+    padding: 8px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .tab2.active { background: #6366f1; color: #fff; }
+
+  .group-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .group-card h3 {
+    font-size: 15px;
+    color: #6366f1;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .group-card h3 .count {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 600;
+  }
+  tr:last-child td { border-bottom: none; }
+  td .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.yes { background: #dcfce7; color: #166534; }
+  .badge.no { background: #fef3c7; color: #92400e; }
+
+  .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .empty {
+    text-align: center;
+    color: #64748b;
+    padding: 30px;
+    font-size: 14px;
+  }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 540px;
+    max-height: 80vh;
+    overflow: auto;
+    padding: 22px;
+  }
+  .modal h3 { margin-bottom: 4px; }
+  .modal .meta { color: #64748b; font-size: 13px; margin-bottom: 14px; }
+  .modal .close {
+    float: right;
+    background: transparent; border: none;
+    font-size: 22px; line-height: 1; cursor: pointer; color: #64748b;
+  }
+
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .summary-cell {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .summary-cell .label { font-size: 11px; color: #64748b; text-transform: uppercase; }
+  .summary-cell .value { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 2px; }
+  .score-pill {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+const $ = sel => document.querySelector(sel);
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+
+const state = {
+  token: localStorage.getItem('admin_token') || null,
+  view: 'users', // users | scores
+  data: null,
+};
+
+async function api(method, url, body) {
+  const opts = { method, headers: {} };
+  if (state.token) opts.headers['Authorization'] = 'Basic ' + state.token;
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  let data = null;
+  try { data = await res.json(); } catch {}
+  return { ok: res.ok, status: res.status, data };
+}
+
+function renderLogin(msg) {
+  document.body.innerHTML = '<div id="app"></div>';
+  $('#app').innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <h2>หลังบ้านระบบให้คะแนน</h2>
+        <p class="subtitle">เข้าสู่ระบบสำหรับผู้ดูแล</p>
+        ${msg ? `<div class="alert error">${escapeHtml(msg)}</div>` : ''}
+        <div class="field">
+          <label>ชื่อผู้ใช้</label>
+          <input id="u" autocomplete="username" />
+        </div>
+        <div class="field">
+          <label>รหัสผ่าน</label>
+          <input id="p" type="password" autocomplete="current-password" />
+        </div>
+        <button class="primary" id="btn-login">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  `;
+  const submit = async () => {
+    const u = $('#u').value.trim();
+    const p = $('#p').value;
+    const btn = $('#btn-login'); btn.disabled = true;
+    const res = await api('POST', '/api/admin/login', { username: u, password: p });
+    btn.disabled = false;
+    if (res.ok) {
+      state.token = res.data.token;
+      localStorage.setItem('admin_token', state.token);
+      renderShell();
+    } else {
+      renderLogin(res.data && res.data.message ? res.data.message : 'เข้าสู่ระบบไม่สำเร็จ');
+    }
+  };
+  $('#btn-login').addEventListener('click', submit);
+  $('#p').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+function renderShell() {
+  document.body.innerHTML = `
+    <header>
+      <h1>หลังบ้านระบบให้คะแนน</h1>
+      <div class="right">
+        <button id="btn-logout">ออกจากระบบ</button>
+      </div>
+    </header>
+    <div class="container">
+      <div class="toolbar">
+        <div class="voting-status">
+          <span class="dot" id="vote-dot"></span>
+          <span id="vote-text">…</span>
+        </div>
+        <button class="secondary" id="btn-toggle">…</button>
+        <div class="spacer"></div>
+        <button class="secondary" id="btn-refresh">↻ รีเฟรช</button>
+        <button class="success" id="btn-export">⬇ ดาวน์โหลด CSV</button>
+        <button class="danger" id="btn-reset">ล้างคะแนนทั้งหมด</button>
+      </div>
+      <div class="tabs2">
+        <div class="tab2 ${state.view==='users'?'active':''}" data-view="users">รายชื่อผู้ลงทะเบียน</div>
+        <div class="tab2 ${state.view==='scores'?'active':''}" data-view="scores">คะแนนรวม (Mode)</div>
+      </div>
+      <div id="content">กำลังโหลด…</div>
+    </div>
+  `;
+  $('#btn-logout').addEventListener('click', () => {
+    state.token = null;
+    localStorage.removeItem('admin_token');
+    renderLogin();
+  });
+  $('#btn-refresh').addEventListener('click', refreshAll);
+  $('#btn-export').addEventListener('click', exportCsv);
+  $('#btn-reset').addEventListener('click', resetVotes);
+  $('#btn-toggle').addEventListener('click', toggleVoting);
+  document.querySelectorAll('.tab2').forEach(t => {
+    t.addEventListener('click', () => {
+      state.view = t.dataset.view;
+      document.querySelectorAll('.tab2').forEach(x => x.classList.toggle('active', x.dataset.view === state.view));
+      renderContent();
+    });
+  });
+  refreshAll();
+}
+
+async function refreshAll() {
+  const [vs, users, scores] = await Promise.all([
+    api('GET', '/api/admin/voting-state'),
+    api('GET', '/api/admin/users'),
+    api('GET', '/api/admin/scores'),
+  ]);
+  if (vs.status === 401 || users.status === 401 || scores.status === 401) {
+    state.token = null; localStorage.removeItem('admin_token'); renderLogin('กรุณาเข้าสู่ระบบใหม่'); return;
+  }
+  state.data = {
+    voting: vs.data,
+    groups: users.data.groups || {},
+    scores: scores.data.users || [],
+  };
+  renderToolbar();
+  renderContent();
+}
+
+function renderToolbar() {
+  const open = state.data.voting.open;
+  $('#vote-dot').className = 'dot' + (open ? ' open' : '');
+  $('#vote-text').textContent = open ? 'เปิดให้โหวต' : 'ปิดการโหวต';
+  const btn = $('#btn-toggle');
+  btn.textContent = open ? 'ปิดการโหวต' : 'เปิดให้โหวต';
+  btn.className = open ? 'danger' : 'success';
+}
+
+async function toggleVoting() {
+  const next = !state.data.voting.open;
+  if (next && !confirm('เปิดให้โหวต? ผู้ที่รออยู่จะเริ่มเห็นรายชื่อทันที')) return;
+  if (!next && !confirm('ปิดการโหวต?')) return;
+  const res = await api('POST', '/api/admin/voting-state', { open: next });
+  if (res.ok) { state.data.voting = res.data; renderToolbar(); }
+}
+
+async function resetVotes() {
+  if (!confirm('ล้างคะแนนและสถานะการส่งทั้งหมด? (ไม่ลบรายชื่อผู้ลงทะเบียน)')) return;
+  const res = await api('POST', '/api/admin/reset-votes');
+  if (res.ok) refreshAll();
+}
+
+function exportCsv() {
+  const url = '/api/admin/export.csv';
+  // basic auth via header is required; download via fetch then blob
+  fetch(url, { headers: { Authorization: 'Basic ' + state.token } })
+    .then(r => r.blob())
+    .then(b => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = 'scores.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+}
+
+function renderContent() {
+  if (!state.data) return;
+  if (state.view === 'users') renderUsers();
+  else renderScores();
+}
+
+function renderUsers() {
+  const groups = state.data.groups;
+  const names = Object.keys(groups).sort();
+  if (names.length === 0) {
+    $('#content').innerHTML = '<div class="empty">ยังไม่มีผู้ลงทะเบียน</div>';
+    return;
+  }
+  $('#content').innerHTML = names.map(g => {
+    const us = groups[g];
+    const submitted = us.filter(u => u.submitted).length;
+    return `
+      <div class="group-card">
+        <h3>กลุ่ม ${escapeHtml(g)} <span class="count">${us.length} คน · ส่งคะแนนแล้ว ${submitted}/${us.length}</span></h3>
+        <table>
+          <thead><tr>
+            <th style="width:18%">รหัสนักศึกษา</th>
+            <th>ชื่อ</th>
+            <th style="width:14%">สถานะ</th>
+            <th style="width:14%">ลงทะเบียนเมื่อ</th>
+            <th style="width:1%"></th>
+          </tr></thead>
+          <tbody>
+            ${us.map(u => `
+              <tr>
+                <td class="num">${escapeHtml(u.student_id)}</td>
+                <td>${escapeHtml(u.name)}</td>
+                <td>${u.submitted
+                  ? '<span class="badge yes">ส่งแล้ว</span>'
+                  : '<span class="badge no">ยังไม่ส่ง</span>'}</td>
+                <td style="font-size:12px;color:#64748b">${escapeHtml((u.created_at || '').replace('T',' ').slice(0,16))}</td>
+                <td><button class="secondary" data-del="${escapeHtml(u.student_id)}">ลบ</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+  document.querySelectorAll('[data-del]').forEach(b => {
+    b.addEventListener('click', async () => {
+      const sid = b.dataset.del;
+      if (!confirm('ลบผู้ใช้ ' + sid + ' และคะแนนที่เกี่ยวข้องทั้งหมด?')) return;
+      const res = await api('DELETE', '/api/admin/users/' + encodeURIComponent(sid));
+      if (res.ok || res.status === 204) refreshAll();
+    });
+  });
+}
+
+function renderScores() {
+  const list = state.data.scores;
+  if (!list.length) {
+    $('#content').innerHTML = '<div class="empty">ยังไม่มีข้อมูล</div>';
+    return;
+  }
+  // group by group_name
+  const groups = {};
+  for (const u of list) {
+    if (!groups[u.group_name]) groups[u.group_name] = [];
+    groups[u.group_name].push(u);
+  }
+  const names = Object.keys(groups).sort();
+  $('#content').innerHTML = names.map(g => `
+    <div class="group-card">
+      <h3>กลุ่ม ${escapeHtml(g)}</h3>
+      <table>
+        <thead><tr>
+          <th style="width:16%">รหัส</th>
+          <th>ชื่อ</th>
+          <th style="width:11%">จำนวนโหวต</th>
+          <th style="width:14%">Mode (คะแนน)</th>
+          <th style="width:11%">ค่าเฉลี่ย</th>
+          <th style="width:12%"></th>
+        </tr></thead>
+        <tbody>
+          ${groups[g].map(u => `
+            <tr>
+              <td class="num">${escapeHtml(u.student_id)}</td>
+              <td>${escapeHtml(u.name)}</td>
+              <td class="num">${u.n}</td>
+              <td>${u.n ? `<span class="score-pill">${escapeHtml(u.modeDisplay)}</span>` : '-'}</td>
+              <td class="num">${u.avg == null ? '-' : u.avg}</td>
+              <td><button class="secondary" data-detail="${escapeHtml(u.student_id)}">ดูคะแนน</button></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+  document.querySelectorAll('[data-detail]').forEach(b => {
+    b.addEventListener('click', () => openDetail(b.dataset.detail));
+  });
+}
+
+async function openDetail(sid) {
+  const res = await api('GET', '/api/admin/votes/' + encodeURIComponent(sid));
+  if (!res.ok) return;
+  const { target, votes, summary } = res.data;
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
+    <div class="modal">
+      <button class="close" id="x-close">×</button>
+      <h3>${escapeHtml(target.name)}</h3>
+      <div class="meta">รหัส ${escapeHtml(target.student_id)} · กลุ่ม ${escapeHtml(target.group_name)}</div>
+      <div class="summary-row">
+        <div class="summary-cell"><div class="label">จำนวนโหวต</div><div class="value">${summary.n}</div></div>
+        <div class="summary-cell"><div class="label">Mode</div><div class="value">${summary.n ? escapeHtml(summary.modeDisplay) : '-'}</div></div>
+        <div class="summary-cell"><div class="label">เฉลี่ย</div><div class="value">${summary.avg == null ? '-' : summary.avg}</div></div>
+      </div>
+      ${votes.length ? `
+        <table>
+          <thead><tr>
+            <th>ผู้ให้คะแนน</th>
+            <th style="width:18%">รหัส</th>
+            <th style="width:18%">คะแนน</th>
+          </tr></thead>
+          <tbody>
+            ${votes.map(v => `
+              <tr>
+                <td>${escapeHtml(v.voter_name)}</td>
+                <td class="num">${escapeHtml(v.voter_student_id)}</td>
+                <td><span class="score-pill">${v.score}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : '<div class="empty">ยังไม่มีคะแนน</div>'}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.querySelector('#x-close').addEventListener('click', close);
+}
+
+// bootstrap
+if (state.token) renderShell();
+else renderLogin();
+</script>
+</body>
+</html>
