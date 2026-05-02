@@ -152,10 +152,13 @@ db.exec(`
     ['original_date', `TEXT`],
     ['original_time', `TEXT`],
     ['transferred_at', `TEXT`],
+    ['slip_ref', `TEXT`],
+    ['slip_transfer_at', `TEXT`],
   ];
   for (const [name, def] of adds) {
     if (!cols.includes(name)) db.exec(`ALTER TABLE bookings ADD COLUMN ${name} ${def}`);
   }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_slip_ref ON bookings(slip_ref);`);
 })();
 
 app.use(express.json());
@@ -872,6 +875,47 @@ app.get('/api/admin/bookings/:id/slip', requireAdmin, (req, res) => {
   if (!filePath.startsWith(SLIPS_DIR + path.sep)) return res.status(400).end();
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'file_missing' });
   res.sendFile(filePath);
+});
+
+// Save OCR'd slip metadata (ref + transfer time) and report any other
+// bookings that already have the same ref — admin sees a duplicate warning.
+// Both fields are best-effort; sanitization keeps OCR garbage out of the DB.
+function sanitizeSlipRef(raw) {
+  if (raw == null) return null;
+  const s = String(raw).replace(/\s+/g, '').toUpperCase();
+  return /^[A-Z0-9-]{8,40}$/.test(s) ? s : null;
+}
+app.post('/api/admin/bookings/:id/slip-ocr', requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const ref = sanitizeSlipRef(req.body?.ref);
+  const transferAt = (() => {
+    const v = String(req.body?.transfer_at || '').trim();
+    return v.length >= 6 && v.length <= 40 ? v : null;
+  })();
+  const row = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
+  if (!row) return res.status(404).json({ error: 'not_found' });
+
+  if (ref || transferAt) {
+    db.prepare(`
+      UPDATE bookings
+      SET slip_ref         = COALESCE(?, slip_ref),
+          slip_transfer_at = COALESCE(?, slip_transfer_at)
+      WHERE id = ?
+    `).run(ref, transferAt, id);
+  }
+
+  let duplicates = [];
+  if (ref) {
+    duplicates = db.prepare(`
+      SELECT id, code, name, phone, payment_status, booking_date, time_slot,
+             slip_uploaded_at, slip_ref, slip_transfer_at
+      FROM bookings
+      WHERE slip_ref = ? AND id != ?
+      ORDER BY slip_uploaded_at DESC
+    `).all(ref, id);
+  }
+
+  res.json({ ref, transfer_at: transferAt, duplicates });
 });
 
 app.post('/api/admin/bookings/:id/verify', requireAdmin, (req, res) => {

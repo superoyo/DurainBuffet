@@ -857,6 +857,17 @@
   .slip-ocr-progress { font-size: 12px; color: #9A3412; }
   .slip-ocr-match { color: #15803D; font-weight: 700; margin-left: 6px; }
   .slip-ocr-mismatch { color: #B91C1C; font-weight: 700; margin-left: 6px; }
+  .slip-ocr-dup {
+    margin-top: 10px; padding: 10px 12px; border-radius: 8px;
+    background: #FEF2F2; border: 1.5px solid #FCA5A5;
+  }
+  .slip-ocr-dup-title { font-weight: 800; color: #991B1B; margin-bottom: 6px; }
+  .slip-ocr-dup-list {
+    list-style: disc; padding-left: 20px; margin: 0;
+    font-size: 12px; color: #7F1D1D; line-height: 1.5;
+  }
+  .slip-ocr-dup-list li { margin: 4px 0; }
+  .slip-ocr-dup-list b { color: #7F1D1D; }
 
   /* ─── Responsive ───────────────────────────────────────── */
   @media (max-width: 900px) {
@@ -2426,7 +2437,18 @@ async function runSlipOcr(blob, bookingId) {
     if (!state.modalBooking || state.modalBooking.id !== bookingId) return;
     const text = (result && result.data && result.data.text) || '';
     const parsed = parseSlipText(text);
-    renderSlipOcr(parsed, text);
+    // Send ref + transfer_at to backend for persistence + duplicate check
+    let duplicates = [];
+    try {
+      const r = await api('POST', `/api/admin/bookings/${bookingId}/slip-ocr`, {
+        ref: parsed.ref,
+        transfer_at: parsed.transferAt,
+      });
+      if (state.modalBooking && state.modalBooking.id === bookingId) {
+        duplicates = (r && r.duplicates) || [];
+      }
+    } catch { /* duplicate check is best-effort */ }
+    renderSlipOcr(parsed, duplicates);
   } catch (err) {
     box.innerHTML = `
       <div class="slip-ocr-title">🔍 อ่านสลิปอัตโนมัติ</div>
@@ -2482,10 +2504,45 @@ function parseSlipText(rawText) {
     }
   }
 
-  return { amount, sender };
+  // ── Reference: keyword line, then alphanumeric token len ≥ 8 ──
+  const refKeywordRe = /(เลขที่อ้างอิง|เลขอ้างอิง|หมายเลขอ้างอิง|รหัสอ้างอิง|เลขที่รายการ|เลขรายการ|trans\s*ref|reference|ref(?:erence)?\s*(?:no|number|#)?|รหัสพร้อมเพย์)/i;
+  const refTokenRe = /[A-Z0-9][A-Z0-9-]{7,39}/i;
+  let ref = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!refKeywordRe.test(lines[i])) continue;
+    // Try inline after the keyword first
+    const after = lines[i].replace(refKeywordRe, '').replace(/^[\s:：.\-]+/, '');
+    let m = after.match(refTokenRe);
+    if (!m && lines[i + 1]) m = lines[i + 1].match(refTokenRe);
+    if (m) { ref = m[0].toUpperCase().replace(/\s+/g, ''); break; }
+  }
+  if (!ref) {
+    // Fallback: longest alphanumeric token (≥ 10 chars) anywhere — bank refs
+    // are usually the longest opaque string on the slip.
+    const tokens = (rawText.match(/[A-Z0-9][A-Z0-9-]{9,39}/gi) || []);
+    if (tokens.length) {
+      tokens.sort((a, b) => b.length - a.length);
+      ref = tokens[0].toUpperCase().replace(/\s+/g, '');
+    }
+  }
+
+  // ── Transfer date/time: "DD/MM/YY[YY] HH:MM" or "D ม.ค. YY HH:MM" ──
+  const TH_MONTHS = '(?:ม\\.ค\\.|ก\\.พ\\.|มี\\.ค\\.|เม\\.ย\\.|พ\\.ค\\.|มิ\\.ย\\.|ก\\.ค\\.|ส\\.ค\\.|ก\\.ย\\.|ต\\.ค\\.|พ\\.ย\\.|ธ\\.ค\\.|มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)';
+  const dateTimeRes = [
+    new RegExp(`(\\d{1,2}\\/\\d{1,2}\\/\\d{2,4})\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)`, 'i'),
+    new RegExp(`(\\d{1,2}\\s+${TH_MONTHS}\\.?\\s*\\d{2,4})\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)`, 'i'),
+    new RegExp(`(\\d{4}-\\d{2}-\\d{2})\\s+(\\d{1,2}:\\d{2}(?::\\d{2})?)`, 'i'),
+  ];
+  let transferAt = null;
+  for (const re of dateTimeRes) {
+    const m = rawText.match(re);
+    if (m) { transferAt = `${m[1]} ${m[2]}`.replace(/\s+/g, ' ').trim(); break; }
+  }
+
+  return { amount, sender, ref, transferAt };
 }
 
-function renderSlipOcr(parsed, rawText) {
+function renderSlipOcr(parsed, duplicates) {
   const b = state.modalBooking;
   const box = $('slip-ocr');
   // Match check (best-effort): expected amount = 199 * num_people
@@ -2518,10 +2575,43 @@ function renderSlipOcr(parsed, rawText) {
   const senderVal = parsed.sender
     ? `<span class="slip-ocr-val">${escapeHtml(parsed.sender)}</span>${nameBadge}`
     : `<span class="slip-ocr-val empty">— อ่านไม่ได้ —</span>`;
+  const refVal = parsed.ref
+    ? `<span class="slip-ocr-val" style="font-family:ui-monospace,monospace;">${escapeHtml(parsed.ref)}</span>`
+    : `<span class="slip-ocr-val empty">— อ่านไม่ได้ —</span>`;
+  const dtVal = parsed.transferAt
+    ? `<span class="slip-ocr-val">${escapeHtml(parsed.transferAt)}</span>`
+    : `<span class="slip-ocr-val empty">— อ่านไม่ได้ —</span>`;
+
+  // Duplicate warning: same slip ref already on another booking
+  let dupHtml = '';
+  if (duplicates && duplicates.length) {
+    const items = duplicates.map(d => {
+      const status = STATUS_LABEL[d.payment_status] || d.payment_status;
+      const when = d.slip_uploaded_at
+        ? new Date(d.slip_uploaded_at + 'Z').toLocaleString('th-TH')
+        : '—';
+      return `<li>
+        <b>${escapeHtml(d.name)}</b> (รหัส ${escapeHtml(d.code)})
+        · ${fmtDateLong(d.booking_date)} ${fmtSlot(d.time_slot)}
+        · <span class="badge ${d.payment_status}">${status}</span>
+        · อัปโหลดเมื่อ ${when}
+      </li>`;
+    }).join('');
+    dupHtml = `
+      <div class="slip-ocr-dup">
+        <div class="slip-ocr-dup-title">⚠️ สลิปนี้เคยอัปโหลดแล้ว ${duplicates.length} ครั้ง</div>
+        <ul class="slip-ocr-dup-list">${items}</ul>
+      </div>
+    `;
+  }
+
   box.innerHTML = `
     <div class="slip-ocr-title">🔍 อ่านสลิปอัตโนมัติ</div>
     <div class="slip-ocr-row"><b>ยอดโอน:</b> ${amountVal}</div>
     <div class="slip-ocr-row"><b>ผู้โอน:</b> ${senderVal}</div>
+    <div class="slip-ocr-row"><b>วัน-เวลา:</b> ${dtVal}</div>
+    <div class="slip-ocr-row"><b>เลขอ้างอิง:</b> ${refVal}</div>
+    ${dupHtml}
     <div class="slip-ocr-progress" style="margin-top:6px;">* OCR เป็นเพียงตัวช่วย โปรดตรวจสอบจริงจากภาพ</div>
   `;
 }
