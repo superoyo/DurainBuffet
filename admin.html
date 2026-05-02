@@ -2021,7 +2021,7 @@ function renderBookingRow(b) {
   //    is "ยกเลิก จองเมื่อ HH:MM (เกิน Hชม Mนาที)" where the parenthesised
   //    overage = now - (bookingTime + 1 hour).
   //  - other non-cancelled non-used statuses: plain "ยกเลิก".
-  if (b.payment_status !== 'cancelled' && !b.used) {
+  if (b.payment_status !== 'cancelled' && b.payment_status !== 'verified' && !b.used) {
     if (b.payment_status === 'pending') {
       const mins = elapsedMinutes(b);
       const when = fmtBookingCreatedAt(b);
