@@ -828,6 +828,22 @@
   }
   .modal-info { font-size: 13px; color: var(--text); margin-top: 14px; line-height: 1.6; }
   .modal-info b { font-weight: 700; }
+  /* Slip review modal: wider + side-by-side (image | text) */
+  .modal.slip-modal { max-width: 1080px; }
+  .slip-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px; align-items: start;
+  }
+  .slip-split-left { position: sticky; top: 0; }
+  .slip-split-left .slip-img {
+    max-height: calc(90vh - 180px);
+    width: 100%; object-fit: contain;
+  }
+  .slip-split-right { min-width: 0; }
+  .slip-split-right .modal-info { margin-top: 0; }
+  .slip-split-right .slip-ocr { margin-top: 0; }
+  .slip-split-right .slip-ocr + .modal-info { margin-top: 14px; }
   .slip-ocr {
     margin-top: 12px; padding: 12px 14px; border-radius: 10px;
     background: #FFF7ED; border: 1px solid #FED7AA;
@@ -851,6 +867,9 @@
       max-height: none;
     }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .slip-split { grid-template-columns: 1fr; }
+    .slip-split-left { position: static; }
+    .slip-split-left .slip-img { max-height: 50vh; }
   }
   @media (max-width: 500px) {
     .container { padding: 16px; }
@@ -1151,15 +1170,21 @@
 
   <!-- Slip review modal -->
   <div class="modal-overlay" id="slip-modal">
-    <div class="modal">
+    <div class="modal slip-modal">
       <div class="modal-head">
         <div class="modal-title" id="slip-modal-title">ตรวจสลิปการชำระเงิน</div>
         <button class="modal-close" id="slip-modal-close">×</button>
       </div>
       <div class="modal-body">
-        <img id="slip-img" class="slip-img" alt="สลิป" />
-        <div class="slip-ocr" id="slip-ocr" style="display:none;"></div>
-        <div class="modal-info" id="slip-modal-info"></div>
+        <div class="slip-split">
+          <div class="slip-split-left">
+            <img id="slip-img" class="slip-img" alt="สลิป" />
+          </div>
+          <div class="slip-split-right">
+            <div class="slip-ocr" id="slip-ocr" style="display:none;"></div>
+            <div class="modal-info" id="slip-modal-info"></div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-danger" id="slip-reject">ปฏิเสธสลิป</button>
