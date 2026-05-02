@@ -828,6 +828,19 @@
   }
   .modal-info { font-size: 13px; color: var(--text); margin-top: 14px; line-height: 1.6; }
   .modal-info b { font-weight: 700; }
+  .slip-ocr {
+    margin-top: 12px; padding: 12px 14px; border-radius: 10px;
+    background: #FFF7ED; border: 1px solid #FED7AA;
+    font-size: 13px; line-height: 1.6;
+  }
+  .slip-ocr-title { font-weight: 800; color: #9A3412; margin-bottom: 6px; }
+  .slip-ocr-row { display: flex; gap: 8px; align-items: baseline; }
+  .slip-ocr-row b { min-width: 92px; font-weight: 700; color: #7C2D12; }
+  .slip-ocr-val { color: var(--text); }
+  .slip-ocr-val.empty { color: var(--muted); font-style: italic; }
+  .slip-ocr-progress { font-size: 12px; color: #9A3412; }
+  .slip-ocr-match { color: #15803D; font-weight: 700; margin-left: 6px; }
+  .slip-ocr-mismatch { color: #B91C1C; font-weight: 700; margin-left: 6px; }
 
   /* ─── Responsive ───────────────────────────────────────── */
   @media (max-width: 900px) {
@@ -1145,6 +1158,7 @@
       </div>
       <div class="modal-body">
         <img id="slip-img" class="slip-img" alt="สลิป" />
+        <div class="slip-ocr" id="slip-ocr" style="display:none;"></div>
         <div class="modal-info" id="slip-modal-info"></div>
       </div>
       <div class="modal-footer">
@@ -1155,6 +1169,7 @@
   </div>
 
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 const TH_MONTH_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const TH_MONTH_LONG  = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -2331,6 +2346,7 @@ async function loadSlipImage(bookingId) {
   }
   img.removeAttribute('src');
   img.alt = 'กำลังโหลด...';
+  resetSlipOcr();
   try {
     const res = await fetch(`/api/admin/bookings/${bookingId}/slip`, {
       headers: { Authorization: `Bearer ${state.token}` },
@@ -2344,9 +2360,145 @@ async function loadSlipImage(bookingId) {
     state.slipObjectUrl = url;
     img.src = url;
     img.alt = 'สลิปการชำระเงิน';
+    runSlipOcr(blob, bookingId);
   } catch {
     img.alt = 'โหลดสลิปไม่สำเร็จ';
   }
+}
+
+// ─── Slip OCR (Tesseract.js, tha+eng) ──────────────────────
+function resetSlipOcr() {
+  const box = $('slip-ocr');
+  box.style.display = 'none';
+  box.innerHTML = '';
+}
+
+async function runSlipOcr(blob, bookingId) {
+  const box = $('slip-ocr');
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="slip-ocr-title">🔍 อ่านสลิปอัตโนมัติ</div>
+    <div class="slip-ocr-progress" id="slip-ocr-progress">กำลังโหลดโมเดล OCR ภาษาไทย…</div>
+  `;
+  try {
+    const result = await Tesseract.recognize(blob, 'tha+eng', {
+      logger: m => {
+        const p = $('slip-ocr-progress');
+        if (!p) return;
+        // Only render meaningful phases
+        if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract') {
+          p.textContent = 'กำลังเริ่ม OCR…';
+        } else if (m.status === 'loading language traineddata' || m.status === 'loaded language traineddata') {
+          p.textContent = `กำลังโหลดโมเดลภาษาไทย… ${Math.round((m.progress || 0) * 100)}%`;
+        } else if (m.status === 'initializing api' || m.status === 'initialized api') {
+          p.textContent = 'กำลังเตรียม OCR…';
+        } else if (m.status === 'recognizing text') {
+          p.textContent = `กำลังอ่านสลิป… ${Math.round((m.progress || 0) * 100)}%`;
+        }
+      },
+    });
+    // Race guard: if user already closed modal or switched booking, drop result
+    if (!state.modalBooking || state.modalBooking.id !== bookingId) return;
+    const text = (result && result.data && result.data.text) || '';
+    const parsed = parseSlipText(text);
+    renderSlipOcr(parsed, text);
+  } catch (err) {
+    box.innerHTML = `
+      <div class="slip-ocr-title">🔍 อ่านสลิปอัตโนมัติ</div>
+      <div class="slip-ocr-val empty">อ่านสลิปไม่สำเร็จ — ตรวจสอบด้วยตา</div>
+    `;
+  }
+}
+
+function parseSlipText(rawText) {
+  const lines = rawText.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // ── Amount: prefer numbers on lines containing money keywords ──
+  const amountRe = /(\d{1,3}(?:,\d{3})+\.\d{2}|\d+\.\d{2})/g;
+  const moneyKeywords = /จำนวนเงิน|จำนวน|ยอดเงิน|ยอดโอน|amount|บาท|baht|thb|฿/i;
+  let amount = null;
+  for (const line of lines) {
+    if (moneyKeywords.test(line)) {
+      const matches = line.match(amountRe);
+      if (matches && matches.length) { amount = matches[matches.length - 1]; break; }
+    }
+  }
+  if (!amount) {
+    // Fallback: pick the largest .XX number on any line (likely the total)
+    const all = (rawText.match(amountRe) || [])
+      .map(s => ({ s, n: parseFloat(s.replace(/,/g, '')) }))
+      .filter(x => !isNaN(x.n));
+    if (all.length) {
+      all.sort((a, b) => b.n - a.n);
+      amount = all[0].s;
+    }
+  }
+
+  // ── Sender name: prefer line containing Thai title prefix ──
+  // Tesseract often inserts spaces between Thai chars; allow loose matching.
+  const titleRe = /(นาย|นาง\s*สาว|น\s*\.?\s*ส\s*\.?|นาง|Mr\.?|Mrs\.?|Ms\.?)\s*([฀-๿a-zA-Z\s\.]{1,60})/i;
+  let sender = null;
+  for (const line of lines) {
+    const m = line.match(titleRe);
+    if (m) {
+      sender = (m[1].replace(/\s+/g, '') + ' ' + m[2].trim()).replace(/\s+/g, ' ').trim();
+      break;
+    }
+  }
+  if (!sender) {
+    // Fallback: line after "จาก" / "ผู้โอน" / "ชื่อผู้โอน" / "From"
+    const fromRe = /^(จาก|ผู้โอน|ชื่อผู้โอน|From)\s*[:：]?\s*(.*)$/i;
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(fromRe);
+      if (!m) continue;
+      const inline = (m[2] || '').trim();
+      if (inline.length > 1) { sender = inline; break; }
+      if (lines[i + 1]) { sender = lines[i + 1]; break; }
+    }
+  }
+
+  return { amount, sender };
+}
+
+function renderSlipOcr(parsed, rawText) {
+  const b = state.modalBooking;
+  const box = $('slip-ocr');
+  // Match check (best-effort): expected amount = 199 * num_people
+  const expected = b ? 199 * (b.num_people || 0) : null;
+  let amountBadge = '';
+  if (parsed.amount && expected) {
+    const got = parseFloat(parsed.amount.replace(/,/g, ''));
+    if (!isNaN(got)) {
+      amountBadge = Math.abs(got - expected) < 0.01
+        ? `<span class="slip-ocr-match">✓ ตรงยอด ${expected} บาท</span>`
+        : `<span class="slip-ocr-mismatch">⚠️ คาด ${expected} บาท</span>`;
+    }
+  }
+  // Name match check (loose: substring either way after stripping titles)
+  let nameBadge = '';
+  if (parsed.sender && b && b.name) {
+    const norm = s => s.replace(/^(นาย|นางสาว|นาง|น\.ส\.|Mr\.?|Mrs\.?|Ms\.?)\s*/i, '')
+                       .replace(/\s+/g, '').toLowerCase();
+    const a = norm(parsed.sender);
+    const c = norm(b.name);
+    if (a && c && (a.includes(c) || c.includes(a))) {
+      nameBadge = `<span class="slip-ocr-match">✓ ตรงชื่อจอง</span>`;
+    } else {
+      nameBadge = `<span class="slip-ocr-mismatch">⚠️ ไม่ตรงกับ "${escapeHtml(b.name)}"</span>`;
+    }
+  }
+  const amountVal = parsed.amount
+    ? `<span class="slip-ocr-val">${escapeHtml(parsed.amount)} บาท</span>${amountBadge}`
+    : `<span class="slip-ocr-val empty">— อ่านไม่ได้ —</span>`;
+  const senderVal = parsed.sender
+    ? `<span class="slip-ocr-val">${escapeHtml(parsed.sender)}</span>${nameBadge}`
+    : `<span class="slip-ocr-val empty">— อ่านไม่ได้ —</span>`;
+  box.innerHTML = `
+    <div class="slip-ocr-title">🔍 อ่านสลิปอัตโนมัติ</div>
+    <div class="slip-ocr-row"><b>ยอดโอน:</b> ${amountVal}</div>
+    <div class="slip-ocr-row"><b>ผู้โอน:</b> ${senderVal}</div>
+    <div class="slip-ocr-progress" style="margin-top:6px;">* OCR เป็นเพียงตัวช่วย โปรดตรวจสอบจริงจากภาพ</div>
+  `;
 }
 
 function openSlipModal(b) {
@@ -2370,6 +2522,7 @@ function closeSlipModal() {
     URL.revokeObjectURL(state.slipObjectUrl);
     state.slipObjectUrl = null;
   }
+  resetSlipOcr();
   $('slip-modal').classList.remove('active');
   state.modalBooking = null;
 }
