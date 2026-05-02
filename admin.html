@@ -828,6 +828,23 @@
   }
   .modal-info { font-size: 13px; color: var(--text); margin-top: 14px; line-height: 1.6; }
   .modal-info b { font-weight: 700; }
+  .slip-amount-due {
+    margin-bottom: 14px; padding: 14px 16px; border-radius: 12px;
+    background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+    border: 2px solid var(--brand-red, #FF7A6D); text-align: center;
+  }
+  .slip-amount-due-label {
+    font-size: 12px; font-weight: 700; color: #9A3412;
+    letter-spacing: 0.5px; margin-bottom: 4px;
+  }
+  .slip-amount-due-value {
+    font-size: 36px; font-weight: 900; color: #B91C1C;
+    line-height: 1.1; letter-spacing: -0.5px;
+  }
+  .slip-amount-due-unit { font-size: 18px; font-weight: 700; }
+  .slip-amount-due-calc {
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+  }
   /* Slip review modal: wider + side-by-side (image | text) */
   .modal.slip-modal { max-width: 1080px; }
   .slip-split {
@@ -2551,9 +2568,14 @@ function renderSlipOcr(parsed, duplicates) {
   if (parsed.amount && expected) {
     const got = parseFloat(parsed.amount.replace(/,/g, ''));
     if (!isNaN(got)) {
-      amountBadge = Math.abs(got - expected) < 0.01
-        ? `<span class="slip-ocr-match">✓ ตรงยอด ${expected} บาท</span>`
-        : `<span class="slip-ocr-mismatch">⚠️ คาด ${expected} บาท</span>`;
+      const diff = expected - got;
+      if (Math.abs(diff) < 0.01) {
+        amountBadge = `<span class="slip-ocr-match">✓ ตรงยอด ${expected} บาท</span>`;
+      } else if (diff > 0) {
+        amountBadge = `<span class="slip-ocr-mismatch">⚠️ ขาด ${diff.toLocaleString('th-TH')} บาท</span>`;
+      } else {
+        amountBadge = `<span class="slip-ocr-mismatch">⚠️ เกิน ${(-diff).toLocaleString('th-TH')} บาท</span>`;
+      }
     }
   }
   // Name match check (loose: substring either way after stripping titles)
@@ -2620,7 +2642,13 @@ function openSlipModal(b) {
   state.modalBooking = b;
   $('slip-modal-title').textContent = `สลิป — ${b.name}`;
   loadSlipImage(b.id);
+  const totalDue = 199 * (b.num_people || 0);
   $('slip-modal-info').innerHTML = `
+    <div class="slip-amount-due">
+      <div class="slip-amount-due-label">ยอดที่ต้องชำระ</div>
+      <div class="slip-amount-due-value">${totalDue.toLocaleString('th-TH')} <span class="slip-amount-due-unit">บาท</span></div>
+      <div class="slip-amount-due-calc">199 × ${b.num_people} คน</div>
+    </div>
     <div><b>ชื่อ:</b> ${escapeHtml(b.name)}</div>
     <div><b>เบอร์:</b> ${escapeHtml(b.phone)} &nbsp; <b>อีเมล:</b> ${escapeHtml(b.email)}</div>
     <div><b>วัน/รอบ:</b> ${fmtDateLong(b.booking_date)} · ${fmtSlot(b.time_slot)} · ${b.num_people} คน</div>
