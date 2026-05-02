@@ -953,6 +953,9 @@
             <button type="button" class="filter-chip" data-filter="pending">
               💳 ยังไม่โอน <span class="filter-chip-count" id="chip-count-pending">0</span>
             </button>
+            <button type="button" class="filter-chip" data-filter="cancelled">
+              ❌ ยกเลิก <span class="filter-chip-count" id="chip-count-cancelled">0</span>
+            </button>
           </div>
 
           <div id="slot-stats" class="stats-row" style="display:none;">
@@ -1903,22 +1906,25 @@ function renderBookings() {
 
   // Filter chip counts (always show against the unfiltered total)
   const counts = {
-    all: state.bookings.length,
+    all:       state.bookings.filter(b => b.payment_status !== 'cancelled').length,
     submitted: state.bookings.filter(b => b.payment_status === 'submitted').length,
     verified:  state.bookings.filter(b => b.payment_status === 'verified' && !b.used).length,
     pending:   state.bookings.filter(b => b.payment_status === 'pending').length,
+    cancelled: state.bookings.filter(b => b.payment_status === 'cancelled').length,
   };
   $('chip-count-all').textContent       = counts.all;
   $('chip-count-submitted').textContent = counts.submitted;
   $('chip-count-verified').textContent  = counts.verified;
   $('chip-count-pending').textContent   = counts.pending;
+  $('chip-count-cancelled').textContent = counts.cancelled;
 
   // Apply filter
   const FILTERS = {
-    all:       _ => true,
+    all:       b => b.payment_status !== 'cancelled',
     submitted: b => b.payment_status === 'submitted',
     verified:  b => b.payment_status === 'verified' && !b.used,
     pending:   b => b.payment_status === 'pending',
+    cancelled: b => b.payment_status === 'cancelled',
   };
   const filtered = state.bookings.filter(FILTERS[state.bookingFilter] || FILTERS.all);
 
@@ -1932,6 +1938,7 @@ function renderBookings() {
       submitted: 'ไม่มีสลิปรอตรวจในรายการนี้',
       verified:  'ไม่มีตั๋วที่ออกไว้รอใช้สิทธิ์',
       pending:   'ไม่มีรายการที่ยังไม่โอน',
+      cancelled: 'ไม่มีรายการที่ยกเลิก',
     };
     $('bookings-empty').querySelector('div:last-child').textContent =
       emptyMsg[state.bookingFilter] || emptyMsg.all;
@@ -2134,10 +2141,11 @@ function downloadCsv(filename, csv) {
 $('bookings-export').onclick = () => {
   // Apply the same active filter to keep CSV in sync with what's visible
   const FILTERS = {
-    all:       _ => true,
+    all:       b => b.payment_status !== 'cancelled',
     submitted: b => b.payment_status === 'submitted',
     verified:  b => b.payment_status === 'verified' && !b.used,
     pending:   b => b.payment_status === 'pending',
+    cancelled: b => b.payment_status === 'cancelled',
   };
   const filtered = state.bookings.filter(FILTERS[state.bookingFilter] || FILTERS.all);
   if (!filtered.length) { alert('ไม่มีข้อมูลให้ export'); return; }
