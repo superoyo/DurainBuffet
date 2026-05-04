@@ -374,6 +374,60 @@
     font-family: inherit;
   }
   .file-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .settings-card.danger-card {
+    border: 2px solid #FCA5A5;
+    background: linear-gradient(135deg, #FFF7F7 0%, #FEF2F2 100%);
+  }
+  .page-section-divider {
+    margin-top: 28px; margin-bottom: 6px;
+    padding-top: 20px; border-top: 2px solid var(--border-soft);
+    font-size: 18px; font-weight: 800; color: var(--text);
+  }
+  .backup-list {
+    display: grid; gap: 8px; margin-top: 10px;
+  }
+  .backup-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    background: #FFFEFB;
+  }
+  .backup-row-info { font-size: 13px; line-height: 1.5; }
+  .backup-row-info b { font-weight: 700; }
+  .backup-row-meta { font-size: 11px; color: var(--muted); }
+  .backup-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .backup-row-actions .btn { padding: 6px 10px; font-size: 12px; }
+  .backup-empty {
+    padding: 16px; text-align: center;
+    color: var(--muted); font-size: 12px;
+    border: 1px dashed var(--border-soft); border-radius: 10px;
+  }
+  .system-log-list {
+    display: grid; gap: 6px;
+    max-height: 360px; overflow-y: auto;
+    border: 1px solid var(--border-soft); border-radius: 10px;
+    padding: 8px; background: #FFFEFB;
+  }
+  .log-entry {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 6px 10px; border-radius: 8px;
+    font-size: 12px; line-height: 1.4;
+    background: #fff; border: 1px solid var(--border-soft);
+  }
+  .log-entry.action-backup_create { border-left: 3px solid #2563EB; }
+  .log-entry.action-backup_delete { border-left: 3px solid #6B7280; }
+  .log-entry.action-restore_server,
+  .log-entry.action-restore_upload { border-left: 3px solid #D97706; }
+  .log-entry.action-data_clear { border-left: 3px solid #B91C1C; }
+  .log-entry-action { font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #F3F4F6; color: #374151; }
+  .log-entry-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .log-entry-detail { color: var(--text); }
   .cropper-wrap {
     background: var(--brand-cream);
     border: 1.5px dashed var(--brand-red);
@@ -1093,6 +1147,50 @@
           <button class="btn btn-primary" id="site-save-btn" style="width:auto; padding:14px 28px;">💾 บันทึกการตั้งค่า</button>
           <span id="site-save-status" style="font-size:13px; color:var(--accent); display:none;">✓ บันทึกแล้ว</span>
         </div>
+
+        <!-- ─── Backup / Restore / Clear / Log ────────────── -->
+        <div class="page-section-divider">🗄 ระบบสำรองข้อมูล</div>
+        <div class="page-sub" style="margin-bottom:14px;">สำรอง / กู้คืน / ดาวน์โหลด / เคลียร์ข้อมูลรายชื่อทั้งหมด · ดู log ของการดำเนินการ</div>
+
+        <div class="settings-card">
+          <div class="settings-section-title">สำรองข้อมูล (Snapshot)</div>
+          <div class="settings-section-sub">บันทึก snapshot ของรายชื่อทั้งหมดในตอนนี้ (พร้อมรูปสลิป) เก็บไว้ในเซิร์ฟเวอร์ และดาวน์โหลดออกมาเก็บไว้ที่เครื่องได้</div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary" id="backup-create-btn" style="padding:12px 22px;">💾 สร้าง Backup ใหม่</button>
+            <button class="btn btn-info" id="backup-download-current" style="padding:12px 22px;">⬇️ ดาวน์โหลด JSON (ข้อมูลปัจจุบัน)</button>
+            <span id="backup-create-status" style="font-size:13px; color:var(--accent); align-self:center; display:none;">✓ สำรองแล้ว</span>
+          </div>
+
+          <div style="margin-top:18px;">
+            <div class="settings-section-title" style="font-size:14px;">รายการ Backup</div>
+            <div id="backup-list" class="backup-list"><div style="color:var(--muted); font-size:12px; padding:8px 0;">กำลังโหลด...</div></div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-section-title">Restore จากไฟล์</div>
+          <div class="settings-section-sub">อัปโหลดไฟล์ backup (.zip หรือ .json) จากเครื่อง — ข้อมูลปัจจุบันทั้งหมดจะถูกเขียนทับ</div>
+          <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; align-items:center;">
+            <input type="file" id="restore-file-input" accept=".zip,.json,application/zip,application/json" style="font-size:13px;" />
+            <button class="btn btn-danger" id="restore-upload-btn" style="padding:12px 22px;" disabled>♻️ Restore จากไฟล์</button>
+          </div>
+        </div>
+
+        <div class="settings-card danger-card">
+          <div class="settings-section-title" style="color:#991B1B;">⚠️ เคลียร์ข้อมูลทั้งหมด</div>
+          <div class="settings-section-sub">ลบรายชื่อและสลิปทั้งหมด เพื่อเตรียมเปิดรอบใหม่ · <b>ตั้งค่าเว็บไซต์ + payment + banner ยังอยู่</b> · ถ้ามี backup ไว้ก็ restore กลับได้ภายหลัง</div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button class="btn btn-danger" id="clear-data-btn" style="padding:12px 22px;">🗑 เคลียร์ข้อมูลทั้งหมด</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-section-title">Log การทำงาน (Backup / Restore / Clear)</div>
+          <div class="settings-section-sub">บันทึกล่าสุด 50 รายการ</div>
+          <div id="system-log-list" class="system-log-list" style="margin-top:10px;">
+            <div style="color:var(--muted); font-size:12px; padding:8px 0;">กำลังโหลด...</div>
+          </div>
+        </div>
       </div>
 
       <!-- ─── Payment Settings view ──────────────────────── -->
@@ -1340,7 +1438,11 @@ document.querySelectorAll('.nav-link').forEach(btn => {
     }
     if (target === 'banner')  loadBannerStatus();
     if (target === 'payment') loadPaymentSettings();
-    if (target === 'site')    loadSiteSettings();
+    if (target === 'site') {
+      loadSiteSettings();
+      loadBackupList();
+      loadSystemLog();
+    }
   };
 });
 
@@ -1799,6 +1901,259 @@ async function saveSiteSettings(patch) {
     alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
   } finally {
     if (btn) btn.disabled = false;
+  }
+}
+
+// ─── Backup / Restore / Clear / System log ────────────────
+async function loadBackupList() {
+  const box = $('backup-list');
+  try {
+    const r = await api('GET', '/api/admin/backups');
+    const list = (r && r.backups) || [];
+    if (!list.length) {
+      box.innerHTML = `<div class="backup-empty">ยังไม่มี backup — กด "💾 สร้าง Backup ใหม่" เพื่อสำรองข้อมูลครั้งแรก</div>`;
+      return;
+    }
+    box.innerHTML = list.map(b => {
+      const when = new Date(b.created_at).toLocaleString('th-TH');
+      const sizeKb = (b.size / 1024).toFixed(1);
+      const sizeMb = (b.size / 1024 / 1024).toFixed(2);
+      const sizeStr = b.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+      const count = (b.bookings_count != null) ? `${b.bookings_count} รายการ` : '?';
+      return `
+        <div class="backup-row">
+          <div class="backup-row-info">
+            <div><b>📦 ${escapeHtml(b.filename)}</b></div>
+            <div class="backup-row-meta">${when} · ${count} · ${sizeStr}</div>
+          </div>
+          <div class="backup-row-actions">
+            <a class="btn btn-info" href="/api/admin/backups/${encodeURIComponent(b.filename)}" data-backup-dl="${escapeHtml(b.filename)}">⬇️ ZIP</a>
+            <a class="btn btn-info" href="/api/admin/backups/${encodeURIComponent(b.filename)}/json" data-backup-dl-json="${escapeHtml(b.filename)}">⬇️ JSON</a>
+            <button type="button" class="btn btn-accent" data-backup-restore="${escapeHtml(b.filename)}">♻️ Restore</button>
+            <button type="button" class="btn btn-danger" data-backup-delete="${escapeHtml(b.filename)}">🗑</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    // Authorize downloads via fetch + blob (since href can't carry headers)
+    box.querySelectorAll('a[data-backup-dl]').forEach(a => {
+      a.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        await downloadAuthed(a.getAttribute('href'), a.dataset.backupDl);
+      });
+    });
+    box.querySelectorAll('a[data-backup-dl-json]').forEach(a => {
+      a.addEventListener('click', async (ev) => {
+        ev.preventDefault();
+        const name = a.dataset.backupDlJson.replace(/\.zip$/, '.json');
+        await downloadAuthed(a.getAttribute('href'), name);
+      });
+    });
+    box.querySelectorAll('button[data-backup-restore]').forEach(b => {
+      b.onclick = () => restoreFromServer(b.dataset.backupRestore);
+    });
+    box.querySelectorAll('button[data-backup-delete]').forEach(b => {
+      b.onclick = () => deleteBackup(b.dataset.backupDelete);
+    });
+  } catch {
+    box.innerHTML = `<div class="backup-empty" style="color:#991B1B;">โหลดรายการ backup ไม่สำเร็จ</div>`;
+  }
+}
+
+// Bearer-authed download: fetch as blob, save via temp <a>
+async function downloadAuthed(url, filename) {
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${state.token}` },
+    });
+    if (!res.ok) { alert('ดาวน์โหลดไม่สำเร็จ'); return; }
+    const blob = await res.blob();
+    const obj = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = obj; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(obj), 0);
+  } catch {
+    alert('เกิดข้อผิดพลาดในการดาวน์โหลด');
+  }
+}
+
+$('backup-create-btn').onclick = async () => {
+  const btn = $('backup-create-btn');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ กำลังสำรอง...';
+  try {
+    const r = await api('POST', '/api/admin/backups');
+    if (r && r.filename) {
+      $('backup-create-status').style.display = 'inline';
+      setTimeout(() => $('backup-create-status').style.display = 'none', 2500);
+      await loadBackupList();
+      await loadSystemLog();
+    } else {
+      alert('สำรองข้อมูลไม่สำเร็จ');
+    }
+  } catch {
+    alert('เกิดข้อผิดพลาดในการสำรองข้อมูล');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+};
+
+$('backup-download-current').onclick = async () => {
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+  await downloadAuthed('/api/admin/backups-current/json', `backup-${ts}.json`);
+};
+
+async function restoreFromServer(filename) {
+  if (!confirmDestructive(
+    `กู้คืนจาก backup: ${filename}\n\n⚠️ ข้อมูลรายชื่อปัจจุบันทั้งหมดจะถูกแทนที่ด้วยข้อมูลใน backup\nการดำเนินการนี้ไม่สามารถยกเลิกได้`,
+    'RESTORE'
+  )) return;
+  try {
+    const r = await api('POST', `/api/admin/backups/${encodeURIComponent(filename)}/restore`);
+    if (r && r.ok) {
+      alert(`✓ กู้คืนสำเร็จ\n• รายการก่อน: ${r.before}\n• รายการหลัง: ${r.after}\n• สลิปที่กู้คืน: ${r.restored_slips}`);
+      await loadBackupList();
+      await loadSystemLog();
+      await refreshAll();
+    } else {
+      alert('กู้คืนไม่สำเร็จ: ' + (r?.message || 'unknown'));
+    }
+  } catch {
+    alert('เกิดข้อผิดพลาดในการกู้คืน');
+  }
+}
+
+async function deleteBackup(filename) {
+  if (!confirm(`ลบ backup นี้?\n${filename}\n\n(ลบแล้วกู้คืนจาก backup นี้ไม่ได้ — ยกเว้นมีไฟล์ดาวน์โหลดเก็บไว้ที่เครื่อง)`)) return;
+  try {
+    const r = await api('DELETE', `/api/admin/backups/${encodeURIComponent(filename)}`);
+    if (r && r.ok) {
+      await loadBackupList();
+      await loadSystemLog();
+    }
+  } catch { alert('ลบไม่สำเร็จ'); }
+}
+
+// Restore from uploaded file
+$('restore-file-input').onchange = (e) => {
+  const has = !!(e.target.files && e.target.files[0]);
+  $('restore-upload-btn').disabled = !has;
+};
+
+$('restore-upload-btn').onclick = async () => {
+  const input = $('restore-file-input');
+  const f = input.files && input.files[0];
+  if (!f) return;
+  if (!confirmDestructive(
+    `กู้คืนจากไฟล์: ${f.name}\n\n⚠️ ข้อมูลรายชื่อปัจจุบันทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์\nการดำเนินการนี้ไม่สามารถยกเลิกได้`,
+    'RESTORE'
+  )) return;
+  const btn = $('restore-upload-btn');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ กำลังกู้คืน...';
+  try {
+    const fd = new FormData();
+    fd.append('file', f);
+    const res = await fetch('/api/admin/restore-upload', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${state.token}` },
+      body: fd,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) {
+      alert(`✓ กู้คืนสำเร็จ\n• รายการก่อน: ${data.before}\n• รายการหลัง: ${data.after}\n• สลิปที่กู้คืน: ${data.restored_slips}\n• แหล่งข้อมูล: ${data.source}`);
+      input.value = '';
+      await loadBackupList();
+      await loadSystemLog();
+      await refreshAll();
+    } else {
+      alert('กู้คืนไม่สำเร็จ: ' + (data.message || data.error || 'unknown'));
+    }
+  } catch (e) {
+    alert('เกิดข้อผิดพลาดในการกู้คืน');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+};
+
+$('clear-data-btn').onclick = async () => {
+  if (!confirmDestructive(
+    `⚠️ เคลียร์ข้อมูลทั้งหมด\n\nรายชื่อทั้งหมด ${state.bookings?.length || '?'} รายการ + ไฟล์สลิปทั้งหมดจะถูกลบ\nการตั้งค่าเว็บ/payment/banner จะยังอยู่\n\nก่อนกด — แนะนำให้สร้าง Backup ก่อนเพื่อความปลอดภัย`,
+    'CLEAR'
+  )) return;
+  const btn = $('clear-data-btn');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ กำลังลบ...';
+  try {
+    const r = await api('POST', '/api/admin/clear-data');
+    if (r && r.ok) {
+      alert(`✓ เคลียร์ข้อมูลสำเร็จ\n• รายการที่ลบ: ${r.bookings_deleted}\n• ไฟล์สลิปที่ลบ: ${r.slips_deleted}`);
+      await loadSystemLog();
+      await refreshAll();
+    }
+  } catch { alert('เกิดข้อผิดพลาดในการเคลียร์'); }
+  finally { btn.disabled = false; btn.textContent = orig; }
+};
+
+// Stronger confirm: requires the user to type a magic word.
+function confirmDestructive(message, magic) {
+  if (!confirm(message)) return false;
+  const typed = prompt(`พิมพ์ "${magic}" เพื่อยืนยัน (case-sensitive):`);
+  if (typed !== magic) {
+    alert('ยกเลิก — คำที่พิมพ์ไม่ตรง');
+    return false;
+  }
+  return true;
+}
+
+const LOG_ACTION_LABEL = {
+  backup_create:  '📦 Backup',
+  backup_delete:  '🗑 ลบ backup',
+  restore_server: '♻️ Restore (server)',
+  restore_upload: '♻️ Restore (upload)',
+  data_clear:     '🗑 เคลียร์ข้อมูล',
+};
+
+async function loadSystemLog() {
+  const box = $('system-log-list');
+  try {
+    const r = await api('GET', '/api/admin/system-log?limit=50');
+    const entries = (r && r.entries) || [];
+    if (!entries.length) {
+      box.innerHTML = `<div style="color:var(--muted); font-size:12px; text-align:center; padding:14px;">ยังไม่มี log</div>`;
+      return;
+    }
+    box.innerHTML = entries.map(e => {
+      const when = new Date(e.created_at + 'Z').toLocaleString('th-TH');
+      const label = LOG_ACTION_LABEL[e.action] || e.action;
+      let detail = '';
+      if (e.action === 'backup_create') {
+        detail = `→ ${escapeHtml(e.details?.filename || '?')} (${e.details?.bookings_count ?? '?'} รายการ)`;
+      } else if (e.action === 'backup_delete') {
+        detail = `→ ${escapeHtml(e.details?.filename || '?')}`;
+      } else if (e.action === 'restore_server') {
+        detail = `จาก ${escapeHtml(e.details?.filename || '?')} · ${e.bookings_before}→${e.bookings_after}`;
+      } else if (e.action === 'restore_upload') {
+        detail = `จาก ${escapeHtml(e.details?.filename || '?')} (${e.details?.source || '?'}) · ${e.bookings_before}→${e.bookings_after}`;
+      } else if (e.action === 'data_clear') {
+        detail = `${e.bookings_before} รายการถูกลบ + ${e.details?.slip_files_deleted ?? 0} สลิป`;
+      }
+      return `
+        <div class="log-entry action-${escapeHtml(e.action)}">
+          <span class="log-entry-action">${label}</span>
+          <span class="log-entry-detail">${detail}</span>
+          <span class="log-entry-time">${when}</span>
+        </div>
+      `;
+    }).join('');
+  } catch {
+    box.innerHTML = `<div style="color:#991B1B; font-size:12px; padding:8px;">โหลด log ไม่สำเร็จ</div>`;
   }
 }
 

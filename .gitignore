@@ -6,3 +6,15 @@ node_modules/
 *.db-wal
 *.db-shm
 DurainBuffet/
+slips/
+backups/
+payment.jpg
+payment.jpeg
+payment.png
+payment.webp
+banner.jpg
+banner.jpeg
+banner.png
+banner.webp
+banner.heic
+banner.heif

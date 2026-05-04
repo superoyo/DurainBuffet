@@ -4,6 +4,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const AdmZip = require('adm-zip');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,8 +12,10 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = process.env.DATA_DIR || __dirname;
 const USING_DEFAULT_DATA_DIR = !process.env.DATA_DIR;
 const SLIPS_DIR = path.join(DATA_DIR, 'slips');
+const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(SLIPS_DIR)) fs.mkdirSync(SLIPS_DIR, { recursive: true });
+if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 const DB_PATH = path.join(DATA_DIR, 'bookings.db');
 
 const ADMIN_USER = process.env.ADMIN_USER || 'admin';
@@ -138,6 +141,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_slot   ON bookings(booking_date, time_slot);
   CREATE INDEX IF NOT EXISTS idx_code   ON bookings(code);
   CREATE INDEX IF NOT EXISTS idx_phone  ON bookings(phone);
+
+  CREATE TABLE IF NOT EXISTS system_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    action          TEXT NOT NULL,
+    details         TEXT,
+    bookings_before INTEGER,
+    bookings_after  INTEGER,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_log_created ON system_log(created_at DESC);
 `);
 
 // ─── Idempotent migrations for existing DBs ─────────────────
@@ -160,6 +173,18 @@ db.exec(`
   }
   db.exec(`CREATE INDEX IF NOT EXISTS idx_slip_ref ON bookings(slip_ref);`);
 })();
+
+// ─── System log helper ──────────────────────────────────────
+function logSys(action, details, bookingsBefore, bookingsAfter) {
+  try {
+    db.prepare(`
+      INSERT INTO system_log (action, details, bookings_before, bookings_after)
+      VALUES (?, ?, ?, ?)
+    `).run(action, details ? JSON.stringify(details) : null, bookingsBefore ?? null, bookingsAfter ?? null);
+  } catch (e) {
+    console.error('logSys failed:', e.message);
+  }
+}
 
 app.use(express.json());
 app.use(express.static(__dirname, { index: false })); // serve index.html via route below
@@ -1057,6 +1082,343 @@ app.post('/api/admin/bookings/:id/unuse', requireAdmin, (req, res) => {
   if (!row) return res.status(404).json({ error: 'not_found' });
   res.json(row);
 });
+
+// ─── Backup / Restore / Clear / System log ─────────────────────────────
+// Backups are stored as ZIP files in BACKUPS_DIR with this layout:
+//   manifest.json   — { version, created_at, bookings_count, settings_count }
+//   bookings.json   — full bookings table dump
+//   settings.json   — full settings table dump
+//   slips/<file>    — every file currently in SLIPS_DIR
+//
+// Restore is atomic on the DB side (single transaction); slip files are
+// replaced after the DB transaction succeeds.
+
+const BACKUP_VERSION = 1;
+const restoreUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 500 * 1024 * 1024 }, // 500 MB
+});
+
+function countBookings() {
+  return db.prepare('SELECT COUNT(*) AS n FROM bookings').get().n;
+}
+
+function buildBackupBuffer() {
+  const zip = new AdmZip();
+  const bookings = db.prepare('SELECT * FROM bookings ORDER BY id ASC').all();
+  const settings = db.prepare('SELECT * FROM settings ORDER BY key ASC').all();
+  const manifest = {
+    version: BACKUP_VERSION,
+    created_at: new Date().toISOString(),
+    bookings_count: bookings.length,
+    settings_count: settings.length,
+  };
+  zip.addFile('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
+  zip.addFile('bookings.json', Buffer.from(JSON.stringify(bookings, null, 2), 'utf8'));
+  zip.addFile('settings.json', Buffer.from(JSON.stringify(settings, null, 2), 'utf8'));
+  if (fs.existsSync(SLIPS_DIR)) {
+    for (const name of fs.readdirSync(SLIPS_DIR)) {
+      const p = path.join(SLIPS_DIR, name);
+      if (fs.statSync(p).isFile()) {
+        zip.addLocalFile(p, 'slips');
+      }
+    }
+  }
+  return { buffer: zip.toBuffer(), manifest };
+}
+
+function buildBackupJson() {
+  const bookings = db.prepare('SELECT * FROM bookings ORDER BY id ASC').all();
+  const settings = db.prepare('SELECT * FROM settings ORDER BY key ASC').all();
+  return {
+    manifest: {
+      version: BACKUP_VERSION,
+      created_at: new Date().toISOString(),
+      bookings_count: bookings.length,
+      settings_count: settings.length,
+    },
+    bookings,
+    settings,
+  };
+}
+
+// Returns { bookings, settings, slipsByName } parsed from buffer.
+// Throws on malformed input.
+function parseBackupPayload(buffer) {
+  // Try JSON first (single object with bookings + settings)
+  try {
+    const txt = buffer.toString('utf8');
+    if (txt.trim().startsWith('{')) {
+      const obj = JSON.parse(txt);
+      if (Array.isArray(obj.bookings)) {
+        return {
+          bookings: obj.bookings,
+          settings: Array.isArray(obj.settings) ? obj.settings : [],
+          slipsByName: new Map(),
+          source: 'json',
+        };
+      }
+    }
+  } catch { /* not JSON, fall through to ZIP */ }
+
+  // Treat as ZIP
+  let zip;
+  try { zip = new AdmZip(buffer); }
+  catch { throw new Error('ไฟล์ไม่ใช่ ZIP หรือ JSON ที่อ่านได้'); }
+
+  const entries = zip.getEntries();
+  const slipsByName = new Map();
+  let bookings = null;
+  let settings = [];
+  for (const e of entries) {
+    const name = e.entryName;
+    if (name === 'bookings.json') {
+      bookings = JSON.parse(e.getData().toString('utf8'));
+    } else if (name === 'settings.json') {
+      settings = JSON.parse(e.getData().toString('utf8'));
+    } else if (name.startsWith('slips/') && !e.isDirectory) {
+      const base = path.basename(name);
+      if (base) slipsByName.set(base, e.getData());
+    }
+  }
+  if (!Array.isArray(bookings)) throw new Error('ไม่พบ bookings.json ในไฟล์ backup');
+  if (!Array.isArray(settings)) settings = [];
+  return { bookings, settings, slipsByName, source: 'zip' };
+}
+
+// Performs the destructive restore. Pre-condition: caller already has the
+// parsed payload. DB changes are atomic in a single transaction; slip files
+// are written after commit (best-effort).
+function performRestore(payload) {
+  const before = countBookings();
+
+  const tx = db.transaction((bookings, settings) => {
+    db.prepare('DELETE FROM bookings').run();
+    db.prepare('DELETE FROM settings').run();
+
+    if (bookings.length) {
+      const cols = Object.keys(bookings[0]);
+      const placeholders = cols.map(() => '?').join(', ');
+      const stmt = db.prepare(
+        `INSERT INTO bookings (${cols.join(', ')}) VALUES (${placeholders})`
+      );
+      for (const b of bookings) stmt.run(cols.map(c => b[c]));
+    }
+    for (const s of settings) {
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at) VALUES (?, ?, COALESCE(?, datetime('now')))
+      `).run(s.key, s.value, s.updated_at || null);
+    }
+  });
+  tx(payload.bookings, payload.settings);
+
+  // Replace slip files (only after DB commit)
+  if (payload.source === 'zip') {
+    if (fs.existsSync(SLIPS_DIR)) {
+      for (const f of fs.readdirSync(SLIPS_DIR)) {
+        try { fs.unlinkSync(path.join(SLIPS_DIR, f)); } catch { /* ignore */ }
+      }
+    }
+    for (const [name, data] of payload.slipsByName) {
+      const safe = name.replace(/[^a-zA-Z0-9._-]/g, '');
+      if (!safe) continue;
+      try { fs.writeFileSync(path.join(SLIPS_DIR, safe), data); } catch (e) { console.error('restore slip failed:', name, e.message); }
+    }
+  }
+
+  refreshBookingDates();
+  return { before, after: countBookings(), restored_slips: payload.slipsByName.size };
+}
+
+// Filename safety: only alphanumeric, dot, underscore, dash
+function safeBackupName(raw) {
+  if (!raw) return null;
+  const s = String(raw).replace(/[^a-zA-Z0-9._-]/g, '');
+  if (!s.endsWith('.zip')) return null;
+  return s;
+}
+
+// Create a new backup (saved to BACKUPS_DIR)
+app.post('/api/admin/backups', requireAdmin, (req, res) => {
+  try {
+    const { buffer, manifest } = buildBackupBuffer();
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const filename = `backup-${ts}.zip`;
+    fs.writeFileSync(path.join(BACKUPS_DIR, filename), buffer);
+    logSys('backup_create', { filename, ...manifest, size: buffer.length }, manifest.bookings_count, manifest.bookings_count);
+    res.status(201).json({
+      filename,
+      size: buffer.length,
+      created_at: manifest.created_at,
+      bookings_count: manifest.bookings_count,
+      settings_count: manifest.settings_count,
+    });
+  } catch (e) {
+    console.error('backup create failed:', e);
+    res.status(500).json({ error: 'backup_failed', message: e.message });
+  }
+});
+
+// List existing backups (most recent first)
+app.get('/api/admin/backups', requireAdmin, (req, res) => {
+  if (!fs.existsSync(BACKUPS_DIR)) return res.json({ backups: [] });
+  const files = fs.readdirSync(BACKUPS_DIR)
+    .filter(f => f.endsWith('.zip'))
+    .map(f => {
+      const p = path.join(BACKUPS_DIR, f);
+      const st = fs.statSync(p);
+      let bookingsCount = null;
+      try {
+        const zip = new AdmZip(p);
+        const entry = zip.getEntry('manifest.json');
+        if (entry) {
+          const m = JSON.parse(entry.getData().toString('utf8'));
+          bookingsCount = m.bookings_count ?? null;
+        }
+      } catch { /* unreadable manifest, skip */ }
+      return {
+        filename: f,
+        size: st.size,
+        created_at: st.mtime.toISOString(),
+        bookings_count: bookingsCount,
+      };
+    })
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  res.json({ backups: files });
+});
+
+// Download a stored backup (ZIP)
+app.get('/api/admin/backups/:name', requireAdmin, (req, res) => {
+  const name = safeBackupName(req.params.name);
+  if (!name) return res.status(400).json({ error: 'invalid_name' });
+  const filePath = path.join(BACKUPS_DIR, name);
+  if (!filePath.startsWith(BACKUPS_DIR + path.sep)) return res.status(400).end();
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not_found' });
+  res.download(filePath, name);
+});
+
+// Download a stored backup but as JSON only (no slip images)
+app.get('/api/admin/backups/:name/json', requireAdmin, (req, res) => {
+  const name = safeBackupName(req.params.name);
+  if (!name) return res.status(400).json({ error: 'invalid_name' });
+  const filePath = path.join(BACKUPS_DIR, name);
+  if (!filePath.startsWith(BACKUPS_DIR + path.sep)) return res.status(400).end();
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not_found' });
+  try {
+    const zip = new AdmZip(filePath);
+    const manifest = JSON.parse((zip.getEntry('manifest.json')?.getData() || Buffer.from('{}')).toString('utf8'));
+    const bookings = JSON.parse((zip.getEntry('bookings.json')?.getData() || Buffer.from('[]')).toString('utf8'));
+    const settings = JSON.parse((zip.getEntry('settings.json')?.getData() || Buffer.from('[]')).toString('utf8'));
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${name.replace(/\.zip$/, '.json')}"`);
+    res.send(JSON.stringify({ manifest, bookings, settings }, null, 2));
+  } catch (e) {
+    res.status(500).json({ error: 'read_failed', message: e.message });
+  }
+});
+
+// Download current data as JSON (without saving a snapshot on the server)
+app.get('/api/admin/backups-current/json', requireAdmin, (req, res) => {
+  try {
+    const payload = buildBackupJson();
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="backup-${ts}.json"`);
+    res.send(JSON.stringify(payload, null, 2));
+  } catch (e) {
+    res.status(500).json({ error: 'export_failed', message: e.message });
+  }
+});
+
+// Delete a stored backup
+app.delete('/api/admin/backups/:name', requireAdmin, (req, res) => {
+  const name = safeBackupName(req.params.name);
+  if (!name) return res.status(400).json({ error: 'invalid_name' });
+  const filePath = path.join(BACKUPS_DIR, name);
+  if (!filePath.startsWith(BACKUPS_DIR + path.sep)) return res.status(400).end();
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not_found' });
+  fs.unlinkSync(filePath);
+  logSys('backup_delete', { filename: name });
+  res.json({ ok: true });
+});
+
+// Restore from a stored backup
+app.post('/api/admin/backups/:name/restore', requireAdmin, (req, res) => {
+  const name = safeBackupName(req.params.name);
+  if (!name) return res.status(400).json({ error: 'invalid_name' });
+  const filePath = path.join(BACKUPS_DIR, name);
+  if (!filePath.startsWith(BACKUPS_DIR + path.sep)) return res.status(400).end();
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not_found' });
+  try {
+    const buffer = fs.readFileSync(filePath);
+    const payload = parseBackupPayload(buffer);
+    const before = countBookings();
+    const result = performRestore(payload);
+    logSys('restore_server', { filename: name, source: payload.source, ...result }, before, result.after);
+    res.json({ ok: true, ...result, source: payload.source });
+  } catch (e) {
+    console.error('restore failed:', e);
+    res.status(400).json({ error: 'restore_failed', message: e.message });
+  }
+});
+
+// Restore from an uploaded file (ZIP or JSON)
+app.post('/api/admin/restore-upload', requireAdmin, (req, res, next) => {
+  restoreUpload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: 'upload_failed', message: err.message });
+    if (!req.file) return res.status(400).json({ error: 'no_file' });
+    try {
+      const payload = parseBackupPayload(req.file.buffer);
+      const before = countBookings();
+      const result = performRestore(payload);
+      logSys('restore_upload', { filename: req.file.originalname, source: payload.source, ...result }, before, result.after);
+      res.json({ ok: true, ...result, source: payload.source });
+    } catch (e) {
+      console.error('restore upload failed:', e);
+      res.status(400).json({ error: 'restore_failed', message: e.message });
+    }
+  });
+});
+
+// Clear all booking data + slip files (settings retained)
+app.post('/api/admin/clear-data', requireAdmin, (req, res) => {
+  try {
+    const before = countBookings();
+    db.prepare('DELETE FROM bookings').run();
+    let slipCount = 0;
+    if (fs.existsSync(SLIPS_DIR)) {
+      for (const f of fs.readdirSync(SLIPS_DIR)) {
+        try { fs.unlinkSync(path.join(SLIPS_DIR, f)); slipCount++; } catch { /* ignore */ }
+      }
+    }
+    logSys('data_clear', { slip_files_deleted: slipCount }, before, 0);
+    res.json({ ok: true, bookings_deleted: before, slips_deleted: slipCount });
+  } catch (e) {
+    console.error('clear failed:', e);
+    res.status(500).json({ error: 'clear_failed', message: e.message });
+  }
+});
+
+// Recent system log entries
+app.get('/api/admin/system-log', requireAdmin, (req, res) => {
+  const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50));
+  const rows = db.prepare(`
+    SELECT id, action, details, bookings_before, bookings_after, created_at
+    FROM system_log
+    ORDER BY id DESC
+    LIMIT ?
+  `).all(limit);
+  res.json({
+    entries: rows.map(r => ({
+      ...r,
+      details: r.details ? safeJsonParse(r.details) : null,
+    })),
+  });
+});
+
+function safeJsonParse(s) {
+  try { return JSON.parse(s); } catch { return s; }
+}
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
