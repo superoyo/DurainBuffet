@@ -59,6 +59,43 @@ function setSetting(key, value) {
   `).run(key, value);
 }
 
+// ─── Admin credentials (env-default with optional DB override) ─────────
+// Initial credentials come from Railway env (ADMIN_USER, ADMIN_PASS).
+// Admin can override via UI — stored as scrypt hash in settings table.
+// "คืนค่าจาก Railway" deletes the override → fall back to env values.
+function hashPassword(plain, salt) {
+  if (!salt) salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(plain, salt, 64).toString('hex');
+  return { hash, salt };
+}
+function verifyHashedPassword(plain, hashHex, salt) {
+  try {
+    const computed = crypto.scryptSync(plain, salt, 64);
+    const stored   = Buffer.from(hashHex, 'hex');
+    if (computed.length !== stored.length) return false;
+    return crypto.timingSafeEqual(computed, stored);
+  } catch { return false; }
+}
+function getAdminCreds() {
+  const hash = getSetting('admin_pass_hash', '');
+  const salt = getSetting('admin_pass_salt', '');
+  const userOverride = getSetting('admin_user_override', '');
+  if (hash && salt) {
+    return { user: userOverride || ADMIN_USER, mode: 'db', hash, salt };
+  }
+  return { user: ADMIN_USER, mode: 'env', plain: ADMIN_PASS };
+}
+function checkAdminPassword(plain) {
+  if (typeof plain !== 'string') return false;
+  const c = getAdminCreds();
+  if (c.mode === 'db') return verifyHashedPassword(plain, c.hash, c.salt);
+  // env mode — constant-time compare with the plaintext from env
+  const a = Buffer.from(plain);
+  const b = Buffer.from(c.plain);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 // ─── Site settings: booking date range + manual open toggle ────────────
 function todayLocalISO() {
   const d = new Date();
@@ -322,7 +359,8 @@ function requireAdmin(req, res, next) {
 }
 app.post('/api/admin/login', (req, res) => {
   const { username, password } = req.body || {};
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
+  const creds = getAdminCreds();
+  if (typeof username === 'string' && username === creds.user && checkAdminPassword(password)) {
     const token = crypto.randomBytes(24).toString('hex');
     adminTokens.add(token);
     return res.json({ token });
@@ -332,6 +370,49 @@ app.post('/api/admin/login', (req, res) => {
 app.post('/api/admin/logout', requireAdmin, (req, res) => {
   adminTokens.delete(req.headers.authorization.slice(7));
   res.status(204).end();
+});
+
+// ─── Admin account: view + change password + reset to env ──────────────
+app.get('/api/admin/account', requireAdmin, (req, res) => {
+  const c = getAdminCreds();
+  res.json({
+    user: c.user,
+    mode: c.mode, // 'env' = ใช้ค่าจาก Railway · 'db' = override ใน DB
+    env_user: ADMIN_USER,
+    is_default_pass: c.mode === 'env' && ADMIN_PASS === 'admin123',
+    pass_updated_at: c.mode === 'db'
+      ? (db.prepare('SELECT updated_at FROM settings WHERE key = ?').get('admin_pass_hash')?.updated_at || null)
+      : null,
+  });
+});
+
+app.post('/api/admin/change-password', requireAdmin, (req, res) => {
+  const current = String(req.body?.current_password || '');
+  const next    = String(req.body?.new_password || '');
+  const newUser = req.body?.new_username != null ? String(req.body.new_username).trim() : null;
+
+  if (!current || !next) return res.status(400).json({ error: 'missing_fields' });
+  if (next.length < 6) return res.status(400).json({ error: 'weak_password', message: 'รหัสใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' });
+  if (!checkAdminPassword(current)) return res.status(401).json({ error: 'wrong_current_password', message: 'รหัสปัจจุบันไม่ถูกต้อง' });
+
+  const { hash, salt } = hashPassword(next);
+  setSetting('admin_pass_hash', hash);
+  setSetting('admin_pass_salt', salt);
+  if (newUser) setSetting('admin_user_override', newUser);
+
+  // Force re-login on every active session
+  adminTokens.clear();
+  logSys('admin_password_change', { user_changed: !!newUser, new_user: newUser || null });
+
+  const c = getAdminCreds();
+  res.json({ ok: true, mode: c.mode, user: c.user });
+});
+
+app.post('/api/admin/reset-password', requireAdmin, (req, res) => {
+  db.prepare(`DELETE FROM settings WHERE key IN ('admin_pass_hash', 'admin_pass_salt', 'admin_user_override')`).run();
+  adminTokens.clear();
+  logSys('admin_password_reset', null);
+  res.json({ ok: true, mode: 'env', user: ADMIN_USER });
 });
 
 // ─── Banner (public read, admin write) ──────────────────────────────────

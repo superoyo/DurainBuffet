@@ -425,6 +425,8 @@
   .log-entry.action-restore_server,
   .log-entry.action-restore_upload { border-left: 3px solid #D97706; }
   .log-entry.action-data_clear { border-left: 3px solid #B91C1C; }
+  .log-entry.action-admin_password_change { border-left: 3px solid #7C3AED; }
+  .log-entry.action-admin_password_reset { border-left: 3px solid #6B7280; }
   .log-entry-action { font-weight: 700; font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #F3F4F6; color: #374151; }
   .log-entry-time { font-size: 11px; color: var(--muted); white-space: nowrap; }
   .log-entry-detail { color: var(--text); }
@@ -1148,6 +1150,42 @@
           <span id="site-save-status" style="font-size:13px; color:var(--accent); display:none;">✓ บันทึกแล้ว</span>
         </div>
 
+        <!-- ─── Admin account ───────────────────────────────── -->
+        <div class="page-section-divider">🔐 บัญชีผู้ดูแล</div>
+        <div class="page-sub" style="margin-bottom:14px;">เปลี่ยนรหัสผ่านเข้าระบบ — ค่าเริ่มต้นมาจาก env ของ Railway (<code>ADMIN_USER</code>, <code>ADMIN_PASS</code>) เปลี่ยนผ่าน UI เพื่อ override ค่านั้น · กดปุ่ม "คืนค่าจาก Railway" เพื่อย้อนกลับมาใช้ค่า env</div>
+
+        <div class="settings-card">
+          <div class="settings-section-title">บัญชีปัจจุบัน</div>
+          <div id="admin-account-info" style="font-size:13px; line-height:1.7; margin-top:8px;">กำลังโหลด...</div>
+
+          <div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--border-soft);">
+            <div class="settings-section-title" style="font-size:14px;">เปลี่ยนรหัสผ่าน</div>
+            <div class="field-row" style="margin-top:8px;">
+              <div class="field" style="flex:1; min-width:200px;">
+                <label for="admin-cur-pass">รหัสปัจจุบัน</label>
+                <input type="password" id="admin-cur-pass" autocomplete="current-password" />
+              </div>
+              <div class="field" style="flex:1; min-width:200px;">
+                <label for="admin-new-pass">รหัสใหม่ (≥ 6 ตัวอักษร)</label>
+                <input type="password" id="admin-new-pass" autocomplete="new-password" />
+              </div>
+              <div class="field" style="flex:1; min-width:200px;">
+                <label for="admin-new-pass2">ยืนยันรหัสใหม่</label>
+                <input type="password" id="admin-new-pass2" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="field" style="max-width:400px;">
+              <label for="admin-new-user">ชื่อผู้ใช้ใหม่ <span style="font-weight:400; color:var(--muted);">(เว้นว่างไว้ถ้าไม่เปลี่ยน)</span></label>
+              <input type="text" id="admin-new-user" autocomplete="username" />
+            </div>
+            <div style="display:flex; gap:10px; margin-top:6px; flex-wrap:wrap;">
+              <button class="btn btn-primary" id="admin-change-pass-btn" style="padding:12px 22px;">🔑 เปลี่ยนรหัส</button>
+              <button class="btn btn-ghost" id="admin-reset-pass-btn" style="padding:12px 22px;">↩️ คืนค่าจาก Railway env</button>
+            </div>
+            <div id="admin-pass-msg" style="font-size:13px; margin-top:8px;"></div>
+          </div>
+        </div>
+
         <!-- ─── Backup / Restore / Clear / Log ────────────── -->
         <div class="page-section-divider">🗄 ระบบสำรองข้อมูล</div>
         <div class="page-sub" style="margin-bottom:14px;">สำรอง / กู้คืน / ดาวน์โหลด / เคลียร์ข้อมูลรายชื่อทั้งหมด · ดู log ของการดำเนินการ</div>
@@ -1440,6 +1478,7 @@ document.querySelectorAll('.nav-link').forEach(btn => {
     if (target === 'payment') loadPaymentSettings();
     if (target === 'site') {
       loadSiteSettings();
+      loadAdminAccount();
       loadBackupList();
       loadSystemLog();
     }
@@ -1904,6 +1943,94 @@ async function saveSiteSettings(patch) {
   }
 }
 
+// ─── Admin account: view + change password + reset ─────────
+async function loadAdminAccount() {
+  const box = $('admin-account-info');
+  try {
+    const r = await api('GET', '/api/admin/account');
+    const modeBadge = r.mode === 'env'
+      ? '<span class="badge" style="background:#DBEAFE; color:#1E40AF;">📦 ใช้ค่าจาก Railway env</span>'
+      : '<span class="badge" style="background:#FEF3C7; color:#92400E;">🔧 Override ใน DB</span>';
+    const updatedRow = r.pass_updated_at
+      ? `<div><b>เปลี่ยนรหัสล่าสุด:</b> ${new Date(r.pass_updated_at + 'Z').toLocaleString('th-TH')}</div>`
+      : '';
+    const warn = r.is_default_pass
+      ? `<div style="margin-top:6px; padding:8px 10px; background:#FEF2F2; border:1px solid #FCA5A5; border-radius:8px; color:#991B1B; font-weight:600;">⚠️ ยังใช้รหัส default (admin123) — กรุณาเปลี่ยนรหัสทันที</div>`
+      : '';
+    box.innerHTML = `
+      <div><b>ชื่อผู้ใช้:</b> <code>${escapeHtml(r.user)}</code></div>
+      <div><b>โหมด:</b> ${modeBadge}</div>
+      ${r.mode === 'db' && r.user !== r.env_user
+        ? `<div style="font-size:12px; color:var(--muted);">(ค่าใน Railway env: <code>${escapeHtml(r.env_user)}</code>)</div>` : ''}
+      ${updatedRow}
+      ${warn}
+    `;
+  } catch {
+    box.innerHTML = '<span style="color:#991B1B;">โหลดข้อมูลบัญชีไม่สำเร็จ</span>';
+  }
+}
+
+$('admin-change-pass-btn').onclick = async () => {
+  const cur = $('admin-cur-pass').value;
+  const next = $('admin-new-pass').value;
+  const next2 = $('admin-new-pass2').value;
+  const newUser = $('admin-new-user').value.trim();
+  const msg = $('admin-pass-msg');
+  msg.textContent = '';
+  msg.style.color = '';
+  if (!cur || !next || !next2) { msg.style.color = '#991B1B'; msg.textContent = 'กรุณากรอกข้อมูลให้ครบ'; return; }
+  if (next.length < 6) { msg.style.color = '#991B1B'; msg.textContent = 'รหัสใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'; return; }
+  if (next !== next2) { msg.style.color = '#991B1B'; msg.textContent = 'รหัสใหม่และรหัสยืนยันไม่ตรงกัน'; return; }
+  if (next === cur) { msg.style.color = '#991B1B'; msg.textContent = 'รหัสใหม่ต้องไม่เหมือนรหัสปัจจุบัน'; return; }
+  if (!confirm('เปลี่ยนรหัสผ่าน? Session ปัจจุบันจะถูก logout — ต้อง login ใหม่ทันที')) return;
+  const btn = $('admin-change-pass-btn');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ กำลังเปลี่ยน...';
+  try {
+    const r = await fetchJson('POST', '/api/admin/change-password', {
+      current_password: cur,
+      new_password: next,
+      new_username: newUser || undefined,
+    });
+    if (r.ok) {
+      msg.style.color = '#15803D';
+      msg.textContent = '✓ เปลี่ยนรหัสสำเร็จ — กำลัง logout...';
+      setTimeout(() => {
+        state.token = null;
+        localStorage.removeItem('admin_token');
+        location.reload();
+      }, 1500);
+    } else {
+      msg.style.color = '#991B1B';
+      msg.textContent = r.message || (r.error === 'wrong_current_password' ? 'รหัสปัจจุบันไม่ถูกต้อง' : 'เปลี่ยนรหัสไม่สำเร็จ');
+    }
+  } catch {
+    msg.style.color = '#991B1B';
+    msg.textContent = 'เกิดข้อผิดพลาด';
+  } finally { btn.disabled = false; btn.textContent = orig; }
+};
+
+$('admin-reset-pass-btn').onclick = async () => {
+  if (!confirm('คืนค่าบัญชีไปใช้ ADMIN_USER / ADMIN_PASS จาก Railway env?\n\nรหัสที่เคยตั้งใน UI จะถูกลบ · session ทั้งหมดถูก logout')) return;
+  const btn = $('admin-reset-pass-btn');
+  btn.disabled = true;
+  try {
+    const r = await api('POST', '/api/admin/reset-password');
+    if (r && r.ok) {
+      $('admin-pass-msg').style.color = '#15803D';
+      $('admin-pass-msg').textContent = '✓ คืนค่าแล้ว — กำลัง logout...';
+      setTimeout(() => {
+        state.token = null;
+        localStorage.removeItem('admin_token');
+        location.reload();
+      }, 1500);
+    }
+  } catch {
+    alert('คืนค่าไม่สำเร็จ');
+  } finally { btn.disabled = false; }
+};
+
 // ─── Backup / Restore / Clear / System log ────────────────
 async function loadBackupList() {
   const box = $('backup-list');
@@ -2113,11 +2240,13 @@ function confirmDestructive(message, magic) {
 }
 
 const LOG_ACTION_LABEL = {
-  backup_create:  '📦 Backup',
-  backup_delete:  '🗑 ลบ backup',
-  restore_server: '♻️ Restore (server)',
-  restore_upload: '♻️ Restore (upload)',
-  data_clear:     '🗑 เคลียร์ข้อมูล',
+  backup_create:         '📦 Backup',
+  backup_delete:         '🗑 ลบ backup',
+  restore_server:        '♻️ Restore (server)',
+  restore_upload:        '♻️ Restore (upload)',
+  data_clear:            '🗑 เคลียร์ข้อมูล',
+  admin_password_change: '🔑 เปลี่ยนรหัส admin',
+  admin_password_reset:  '↩️ คืนค่ารหัสจาก env',
 };
 
 async function loadSystemLog() {
@@ -2143,6 +2272,10 @@ async function loadSystemLog() {
         detail = `จาก ${escapeHtml(e.details?.filename || '?')} (${e.details?.source || '?'}) · ${e.bookings_before}→${e.bookings_after}`;
       } else if (e.action === 'data_clear') {
         detail = `${e.bookings_before} รายการถูกลบ + ${e.details?.slip_files_deleted ?? 0} สลิป`;
+      } else if (e.action === 'admin_password_change') {
+        detail = e.details?.user_changed ? `เปลี่ยนรหัส + ชื่อผู้ใช้ → ${escapeHtml(e.details.new_user || '?')}` : 'เปลี่ยนรหัส';
+      } else if (e.action === 'admin_password_reset') {
+        detail = 'คืนค่าจาก Railway env';
       }
       return `
         <div class="log-entry action-${escapeHtml(e.action)}">
