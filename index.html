@@ -1130,32 +1130,40 @@ function clearPhoneWarning() {
   state.phoneTakenBy = null;
   state.phoneLimitBy = null;
 }
-// Quota: same phone can submit up to N bookings today (Bangkok local date).
-// Show informational banner with current count + remaining when count > 0;
-// turn it red and block submit only when the limit is reached.
+// Quota: same phone can have any number of bookings today (Bangkok local
+// date), but SUM(num_people) must not exceed people_max (= 5). Show an
+// orange info banner with current people-count + remaining; turn it red
+// and block submit when this booking's people would push us over.
 function showPhoneInfo(data, phone) {
   state.phoneTakenBy = phone;
-  state.phoneLimitBy = data.limit_reached ? phone : null;
+  const peopleCount = data.people_count || 0;
+  const peopleMax = data.people_max || 5;
+  const peopleRemaining = (data.people_remaining != null)
+    ? data.people_remaining
+    : Math.max(0, peopleMax - peopleCount);
+  const requested = state.people || 0;
+  // Block when no quota left, OR when the requested num_people would exceed remaining.
+  const wouldExceed = peopleRemaining === 0 || (requested > 0 && requested > peopleRemaining);
+  state.phoneLimitBy = wouldExceed ? phone : null;
+  state.phoneLimitInfo = wouldExceed ? { peopleCount, peopleMax, peopleRemaining, requested } : null;
   const w = $('phone-warning');
-  const count = data.count || 0;
-  const max = data.max || 5;
-  const remaining = Math.max(0, max - count);
-  if (count <= 0) { clearPhoneWarning(); return; }
+  if (peopleCount <= 0) { clearPhoneWarning(); return; }
   const lookupLink = `<a href="#" id="go-lookup-from-warning" style="font-weight:800; text-decoration:underline; margin-left:6px;">→ ตรวจสอบสถานะ</a>`;
-  if (data.limit_reached) {
+  if (peopleRemaining === 0) {
     w.className = 'alert error';
     w.style.display = 'block';
-    w.style.background = '';
-    w.style.borderColor = '';
-    w.style.color = '';
-    w.innerHTML = `⛔ เบอร์นี้สร้างการจองวันนี้ <b>ครบ ${max} ใบ</b>แล้ว — กรุณาลองใหม่ในวันถัดไป ${lookupLink}`;
+    w.style.background = ''; w.style.borderColor = ''; w.style.color = '';
+    w.innerHTML = `⛔ เบอร์นี้จองวันนี้ครบ <b>${peopleMax} คน</b>แล้ว — กรุณาลองใหม่ในวันถัดไป ${lookupLink}`;
+  } else if (wouldExceed) {
+    w.className = 'alert error';
+    w.style.display = 'block';
+    w.style.background = ''; w.style.borderColor = ''; w.style.color = '';
+    w.innerHTML = `⛔ วันนี้เหลือโควตา <b>${peopleRemaining} คน</b> · แต่คุณเลือก <b>${requested} คน</b> — กรุณาลดจำนวนคนหรือลองใหม่พรุ่งนี้ ${lookupLink}`;
   } else {
     w.className = 'alert';
     w.style.display = 'block';
-    w.style.background = '#FEF3C7';
-    w.style.borderColor = '#F59E0B';
-    w.style.color = '#92400E';
-    w.innerHTML = `ℹ️ วันนี้คุณสร้างการจองด้วยเบอร์นี้ไปแล้ว <b>${count}</b> ใบ · จองได้อีก <b>${remaining}</b> ใบ ${lookupLink}`;
+    w.style.background = '#FEF3C7'; w.style.borderColor = '#F59E0B'; w.style.color = '#92400E';
+    w.innerHTML = `ℹ️ วันนี้คุณจองด้วยเบอร์นี้ไปแล้ว <b>${peopleCount} คน</b> · จองได้อีก <b>${peopleRemaining} คน</b> ${lookupLink}`;
   }
   const link = $('go-lookup-from-warning');
   if (link) link.onclick = (e) => {
@@ -1206,7 +1214,13 @@ $('booking-form').onsubmit = async (e) => {
   if (!normalizePhone(phone)) { setError('phone', 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0'); ok = false; }
   // Email is optional — only validate when something is typed
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
-  if (state.phoneLimitBy) { setError('phone', 'เบอร์นี้สร้างการจองวันนี้ครบแล้ว — กรุณาลองใหม่ในวันถัดไป'); ok = false; }
+  if (state.phoneLimitBy) {
+    const info = state.phoneLimitInfo;
+    const msg = (info && info.peopleRemaining > 0)
+      ? `วันนี้เหลือโควตา ${info.peopleRemaining} คน — ลดจำนวนคนหรือลองใหม่พรุ่งนี้`
+      : 'เบอร์นี้จองวันนี้ครบโควตา 5 คนแล้ว — ลองใหม่ในวันถัดไป';
+    setError('phone', msg); ok = false;
+  }
   if (!ok) return;
 
   const btn = $('submit-booking');
@@ -1227,8 +1241,13 @@ $('booking-form').onsubmit = async (e) => {
     if (!res.ok) {
       if (data.fields) for (const [k, v] of Object.entries(data.fields)) setError(k, v);
       else if (data.error === 'phone_limit_reached') {
-        showPhoneInfo({ count: data.count, max: data.max, limit_reached: true }, phone);
-        showAlert(data.message || 'เบอร์นี้สร้างการจองวันนี้ครบโควตาแล้ว');
+        showPhoneInfo({
+          people_count: data.people_count,
+          people_max: data.people_max,
+          people_remaining: data.people_remaining,
+          limit_reached: data.people_remaining === 0,
+        }, phone);
+        showAlert(data.message || 'เบอร์นี้จองวันนี้ครบโควตา 5 คนแล้ว');
       } else if (data.error === 'full') {
         showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
         await loadAvailability();

@@ -29,12 +29,12 @@ const BANK_INFO = {
 
 const SLOT_CAPACITY = 100;
 const MAX_PEOPLE_PER_BOOKING = 5;
-// One phone may submit up to MAX_BOOKINGS_PER_PHONE_PER_DAY bookings on a
-// single calendar day (counted by creation date in Bangkok time, regardless
-// of which booking_date / time_slot they reserve). The booking itself can
-// hold up to MAX_PEOPLE_PER_BOOKING people. Cancelled bookings don't count
-// so the customer can re-book after admin cancels.
-const MAX_BOOKINGS_PER_PHONE_PER_DAY = 5;
+// Quota: same phone can have any number of bookings on a single calendar
+// day, but the SUM of num_people across those bookings must not exceed
+// MAX_PEOPLE_PER_PHONE_PER_DAY. Counted by creation date in Bangkok time,
+// regardless of which booking_date / time_slot they reserve. Cancelled
+// bookings don't count so the customer can re-book after admin cancels.
+const MAX_PEOPLE_PER_PHONE_PER_DAY = 5;
 // Apply Bangkok offset (+7) so the day boundary is consistent regardless
 // of where the server is hosted (Railway defaults to UTC).
 const TODAY_FILTER_SQL = `DATE(created_at, '+7 hours') = DATE('now', '+7 hours')`;
@@ -679,19 +679,23 @@ app.post('/api/booking', (req, res) => {
   if (!phoneClean) return res.status(400).json({ error: 'invalid', fields: { phone: 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0' } });
 
   const tx = db.transaction(() => {
-    // Quota: same phone can submit up to MAX_BOOKINGS_PER_PHONE_PER_DAY
-    // bookings TODAY (Bangkok local date, by created_at). Cancelled
-    // bookings are excluded — so the customer can retry after admin cancels.
+    // Quota: SUM(num_people) for this phone today (Bangkok local date,
+    // by created_at) plus the new booking's people must not exceed
+    // MAX_PEOPLE_PER_PHONE_PER_DAY. Cancelled bookings don't count.
     const existing = db.prepare(`
-      SELECT id, booking_date, time_slot, payment_status, created_at
+      SELECT id, booking_date, time_slot, num_people, payment_status, created_at
       FROM bookings
       WHERE phone = ? AND payment_status != 'cancelled' AND ${TODAY_FILTER_SQL}
       ORDER BY created_at ASC
     `).all(phoneClean);
-    if (existing.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY) {
-      const err = new Error('phone_limit_reached');
+    const peopleSoFar = existing.reduce((s, b) => s + (b.num_people || 0), 0);
+    if (peopleSoFar + num_people > MAX_PEOPLE_PER_PHONE_PER_DAY) {
+      const err = new Error('phone_people_limit');
       err.code = 'PHONE_LIMIT';
-      err.count = existing.length;
+      err.people_count = peopleSoFar;
+      err.people_max = MAX_PEOPLE_PER_PHONE_PER_DAY;
+      err.people_remaining = Math.max(0, MAX_PEOPLE_PER_PHONE_PER_DAY - peopleSoFar);
+      err.requested = num_people;
       err.existing = existing;
       throw err;
     }
@@ -724,12 +728,17 @@ app.post('/api/booking', (req, res) => {
     res.status(201).json(publicView(row));
   } catch (e) {
     if (e.code === 'PHONE_LIMIT') {
+      const msg = e.people_remaining > 0
+        ? `เบอร์นี้จองวันนี้ไปแล้ว ${e.people_count} คน · เหลือโควตา ${e.people_remaining} คน — แต่คุณเลือก ${e.requested} คน`
+        : `เบอร์นี้จองวันนี้ครบ ${e.people_max} คนแล้ว — กรุณาลองใหม่ในวันถัดไป`;
       return res.status(409).json({
         error: 'phone_limit_reached',
-        count: e.count,
-        max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
+        people_count: e.people_count,
+        people_max: e.people_max,
+        people_remaining: e.people_remaining,
+        requested: e.requested,
         existing: e.existing,
-        message: `เบอร์นี้สร้างการจองในวันนี้ครบ ${MAX_BOOKINGS_PER_PHONE_PER_DAY} ใบแล้ว — กรุณาลองใหม่ในวันถัดไป`,
+        message: msg,
       });
     }
     if (e.code === 'FULL') {
@@ -740,25 +749,34 @@ app.post('/api/booking', (req, res) => {
   }
 });
 
-// Realtime quota check used by the booking form. Returns the count of
-// bookings created TODAY (Bangkok local date) by this phone — same rule
-// the POST endpoint enforces. The `date` query param is no longer used
-// for filtering, but kept for backwards compat (ignored).
+// Realtime quota check used by the booking form. Returns SUM(num_people)
+// of bookings created TODAY (Bangkok local date) by this phone — the
+// quota the POST endpoint enforces. The `date` query param is now
+// ignored (kept for backwards compat).
 app.get('/api/booking/check', (req, res) => {
   const phone = normalizePhone(req.query.phone);
-  if (!phone) {
-    return res.json({ count: 0, max: MAX_BOOKINGS_PER_PHONE_PER_DAY, limit_reached: false, bookings: [] });
-  }
+  const empty = {
+    bookings_count: 0,
+    people_count: 0,
+    people_max: MAX_PEOPLE_PER_PHONE_PER_DAY,
+    people_remaining: MAX_PEOPLE_PER_PHONE_PER_DAY,
+    limit_reached: false,
+    bookings: [],
+  };
+  if (!phone) return res.json(empty);
   const rows = db.prepare(`
-    SELECT booking_date, time_slot, payment_status, created_at
+    SELECT booking_date, time_slot, num_people, payment_status, created_at
     FROM bookings
     WHERE phone = ? AND payment_status != 'cancelled' AND ${TODAY_FILTER_SQL}
     ORDER BY created_at ASC
   `).all(phone);
+  const peopleCount = rows.reduce((s, b) => s + (b.num_people || 0), 0);
   res.json({
-    count: rows.length,
-    max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
-    limit_reached: rows.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY,
+    bookings_count: rows.length,
+    people_count: peopleCount,
+    people_max: MAX_PEOPLE_PER_PHONE_PER_DAY,
+    people_remaining: Math.max(0, MAX_PEOPLE_PER_PHONE_PER_DAY - peopleCount),
+    limit_reached: peopleCount >= MAX_PEOPLE_PER_PHONE_PER_DAY,
     bookings: rows,
   });
 });
