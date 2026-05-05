@@ -1130,21 +1130,33 @@ function clearPhoneWarning() {
   state.phoneTakenBy = null;
   state.phoneLimitBy = null;
 }
-// One phone = one booking per day. If the customer already has a booking
-// on the selected date, block submission and link to the lookup tab.
+// Quota: same phone can submit up to N bookings today (Bangkok local date).
+// Show informational banner with current count + remaining when count > 0;
+// turn it red and block submit only when the limit is reached.
 function showPhoneInfo(data, phone) {
   state.phoneTakenBy = phone;
   state.phoneLimitBy = data.limit_reached ? phone : null;
   const w = $('phone-warning');
-  if (!data.limit_reached) { clearPhoneWarning(); return; }
+  const count = data.count || 0;
+  const max = data.max || 5;
+  const remaining = Math.max(0, max - count);
+  if (count <= 0) { clearPhoneWarning(); return; }
   const lookupLink = `<a href="#" id="go-lookup-from-warning" style="font-weight:800; text-decoration:underline; margin-left:6px;">→ ตรวจสอบสถานะ</a>`;
-  const existing = (data.bookings && data.bookings[0]) || null;
-  const detail = existing
-    ? ` · <b>${fmtDateLong(existing.booking_date)}</b> ${fmtSlot(existing.time_slot)} · ${(STATUS_LABEL[existing.payment_status] || STATUS_LABEL.pending).label}`
-    : '';
-  w.className = 'alert error';
-  w.style.display = 'block';
-  w.innerHTML = `⛔ เบอร์นี้เคยจองวันที่เลือกแล้ว${detail} — กรุณาเลือกวันอื่น ${lookupLink}`;
+  if (data.limit_reached) {
+    w.className = 'alert error';
+    w.style.display = 'block';
+    w.style.background = '';
+    w.style.borderColor = '';
+    w.style.color = '';
+    w.innerHTML = `⛔ เบอร์นี้สร้างการจองวันนี้ <b>ครบ ${max} ใบ</b>แล้ว — กรุณาลองใหม่ในวันถัดไป ${lookupLink}`;
+  } else {
+    w.className = 'alert';
+    w.style.display = 'block';
+    w.style.background = '#FEF3C7';
+    w.style.borderColor = '#F59E0B';
+    w.style.color = '#92400E';
+    w.innerHTML = `ℹ️ วันนี้คุณสร้างการจองด้วยเบอร์นี้ไปแล้ว <b>${count}</b> ใบ · จองได้อีก <b>${remaining}</b> ใบ ${lookupLink}`;
+  }
   const link = $('go-lookup-from-warning');
   if (link) link.onclick = (e) => {
     e.preventDefault();
@@ -1194,7 +1206,7 @@ $('booking-form').onsubmit = async (e) => {
   if (!normalizePhone(phone)) { setError('phone', 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0'); ok = false; }
   // Email is optional — only validate when something is typed
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
-  if (state.phoneLimitBy) { setError('phone', 'เบอร์นี้เคยจองวันที่เลือกแล้ว — เลือกวันอื่นหรือตรวจสอบสถานะ'); ok = false; }
+  if (state.phoneLimitBy) { setError('phone', 'เบอร์นี้สร้างการจองวันนี้ครบแล้ว — กรุณาลองใหม่ในวันถัดไป'); ok = false; }
   if (!ok) return;
 
   const btn = $('submit-booking');
@@ -1216,7 +1228,7 @@ $('booking-form').onsubmit = async (e) => {
       if (data.fields) for (const [k, v] of Object.entries(data.fields)) setError(k, v);
       else if (data.error === 'phone_limit_reached') {
         showPhoneInfo({ count: data.count, max: data.max, limit_reached: true }, phone);
-        showAlert(data.message || 'เบอร์นี้เคยจองวันที่เลือกแล้ว');
+        showAlert(data.message || 'เบอร์นี้สร้างการจองวันนี้ครบโควตาแล้ว');
       } else if (data.error === 'full') {
         showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
         await loadAvailability();

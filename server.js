@@ -29,10 +29,15 @@ const BANK_INFO = {
 
 const SLOT_CAPACITY = 100;
 const MAX_PEOPLE_PER_BOOKING = 5;
-// One phone = one booking per day. The booking itself can hold up to
-// MAX_PEOPLE_PER_BOOKING people. Cancelled bookings don't count towards
-// this quota so the customer can re-book after admin cancels.
-const MAX_BOOKINGS_PER_PHONE_PER_DAY = 1;
+// One phone may submit up to MAX_BOOKINGS_PER_PHONE_PER_DAY bookings on a
+// single calendar day (counted by creation date in Bangkok time, regardless
+// of which booking_date / time_slot they reserve). The booking itself can
+// hold up to MAX_PEOPLE_PER_BOOKING people. Cancelled bookings don't count
+// so the customer can re-book after admin cancels.
+const MAX_BOOKINGS_PER_PHONE_PER_DAY = 5;
+// Apply Bangkok offset (+7) so the day boundary is consistent regardless
+// of where the server is hosted (Railway defaults to UTC).
+const TODAY_FILTER_SQL = `DATE(created_at, '+7 hours') = DATE('now', '+7 hours')`;
 const TIME_SLOTS = [
   '10:00', '11:00', '12:00', '13:00', '14:00',
   '15:00', '16:00', '17:00', '18:00', '19:00',
@@ -674,15 +679,15 @@ app.post('/api/booking', (req, res) => {
   if (!phoneClean) return res.status(400).json({ error: 'invalid', fields: { phone: 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0' } });
 
   const tx = db.transaction(() => {
-    // One phone = up to MAX_BOOKINGS_PER_PHONE_PER_DAY bookings per day.
-    // Cancelled bookings don't count (so the customer can re-book after
-    // admin cancels). Different days are independent.
+    // Quota: same phone can submit up to MAX_BOOKINGS_PER_PHONE_PER_DAY
+    // bookings TODAY (Bangkok local date, by created_at). Cancelled
+    // bookings are excluded — so the customer can retry after admin cancels.
     const existing = db.prepare(`
-      SELECT id, booking_date, time_slot, payment_status
+      SELECT id, booking_date, time_slot, payment_status, created_at
       FROM bookings
-      WHERE phone = ? AND booking_date = ? AND payment_status != 'cancelled'
+      WHERE phone = ? AND payment_status != 'cancelled' AND ${TODAY_FILTER_SQL}
       ORDER BY created_at ASC
-    `).all(phoneClean, booking_date);
+    `).all(phoneClean);
     if (existing.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY) {
       const err = new Error('phone_limit_reached');
       err.code = 'PHONE_LIMIT';
@@ -724,7 +729,7 @@ app.post('/api/booking', (req, res) => {
         count: e.count,
         max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
         existing: e.existing,
-        message: 'เบอร์นี้เคยจองวันที่เลือกแล้ว — กรุณาตรวจสอบสถานะหรือเลือกวันอื่น',
+        message: `เบอร์นี้สร้างการจองในวันนี้ครบ ${MAX_BOOKINGS_PER_PHONE_PER_DAY} ใบแล้ว — กรุณาลองใหม่ในวันถัดไป`,
       });
     }
     if (e.code === 'FULL') {
@@ -735,42 +740,26 @@ app.post('/api/booking', (req, res) => {
   }
 });
 
-// Realtime check used by the booking form to advise about existing bookings
-// for the same phone on the same day. Same phone can book up to
-// MAX_BOOKINGS_PER_PHONE_PER_DAY active bookings per day.
+// Realtime quota check used by the booking form. Returns the count of
+// bookings created TODAY (Bangkok local date) by this phone — same rule
+// the POST endpoint enforces. The `date` query param is no longer used
+// for filtering, but kept for backwards compat (ignored).
 app.get('/api/booking/check', (req, res) => {
   const phone = normalizePhone(req.query.phone);
-  const date  = String(req.query.date || '').trim();
   if (!phone) {
     return res.json({ count: 0, max: MAX_BOOKINGS_PER_PHONE_PER_DAY, limit_reached: false, bookings: [] });
   }
-
-  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const rows = db.prepare(`
-      SELECT booking_date, time_slot, payment_status
-      FROM bookings
-      WHERE phone = ? AND booking_date = ? AND payment_status != 'cancelled'
-      ORDER BY created_at ASC
-    `).all(phone, date);
-    return res.json({
-      count: rows.length,
-      max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
-      limit_reached: rows.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY,
-      bookings: rows,
-    });
-  }
-  // Without date: return the most recent active booking for info display
-  const last = db.prepare(`
-    SELECT booking_date, time_slot, payment_status
-    FROM bookings WHERE phone = ? AND payment_status != 'cancelled'
-    ORDER BY created_at DESC LIMIT 1
-  `).get(phone);
+  const rows = db.prepare(`
+    SELECT booking_date, time_slot, payment_status, created_at
+    FROM bookings
+    WHERE phone = ? AND payment_status != 'cancelled' AND ${TODAY_FILTER_SQL}
+    ORDER BY created_at ASC
+  `).all(phone);
   res.json({
-    count: 0,
+    count: rows.length,
     max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
-    limit_reached: false,
-    bookings: [],
-    last_booking: last || null,
+    limit_reached: rows.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY,
+    bookings: rows,
   });
 });
 
