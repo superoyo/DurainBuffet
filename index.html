@@ -766,8 +766,9 @@
           </div>
           <div class="field">
             <label for="f-phone">เบอร์โทรศัพท์</label>
-            <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" required />
+            <input type="tel" id="f-phone" inputmode="tel" autocomplete="tel" placeholder="0xx-xxx-xxxx" maxlength="15" required />
             <div class="err" data-err="phone"></div>
+            <div id="phone-normalized-hint" style="font-size:12px; color:#15803D; margin-top:4px; display:none;"></div>
             <div id="phone-warning" class="alert" style="display:none; margin-top:6px;"></div>
           </div>
           <div class="field">
@@ -975,6 +976,17 @@ function fmtSlot(time) {
 }
 function fmtBaht(n) { return '฿' + Number(n).toLocaleString('th-TH'); }
 
+// Normalize Thai phone to canonical 10-digit form starting with '0'.
+// Mirrors normalizePhone() in server.js — keep the rules in sync.
+function normalizePhone(raw) {
+  if (raw == null) return null;
+  let d = String(raw).replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('66'))         d = '0' + d.slice(2);
+  else if (d.length === 13 && d.startsWith('0066'))  d = '0' + d.slice(4);
+  if (d.length !== 10 || !d.startsWith('0')) return null;
+  return d;
+}
+
 // ─── Mode tabs ─────────────────────────────────────────────
 $$('.tab').forEach(t => {
   t.onclick = () => {
@@ -1094,7 +1106,7 @@ $('next-3').onclick = () => {
     `${state.people} คน • ${fmtDateLong(state.date)} • ${fmtSlot(state.time)}`;
   // Re-check phone-warning against the freshly selected date
   const phone = $('f-phone').value.trim();
-  if (/^[0-9\-+\s()]{9,15}$/.test(phone)) recheckPhoneForCurrentDate(phone);
+  if (normalizePhone(phone)) recheckPhoneForCurrentDate(phone);
   setStep(4);
 };
 
@@ -1113,6 +1125,8 @@ function clearPhoneWarning() {
   w.style.background = '';
   w.style.borderColor = '';
   w.style.color = '';
+  const hint = $('phone-normalized-hint');
+  if (hint) hint.style.display = 'none';
   state.phoneTakenBy = null;
   state.phoneLimitBy = null;
 }
@@ -1171,7 +1185,16 @@ $('f-phone').addEventListener('input', (e) => {
   clearTimeout(state.phoneCheckTimer);
   const phone = e.target.value.trim();
   if (state.phoneTakenBy && state.phoneTakenBy !== phone) clearPhoneWarning();
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) return;
+  // Live preview: show the canonical form if the user typed +66/66 prefix
+  const norm = normalizePhone(phone);
+  const hint = $('phone-normalized-hint');
+  if (norm && norm !== phone.replace(/\D/g, '')) {
+    hint.textContent = `→ จะบันทึกเป็น ${norm}`;
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+  if (!norm) return;
   state.phoneCheckTimer = setTimeout(() => recheckPhoneForCurrentDate(phone), 350);
 });
 
@@ -1186,7 +1209,7 @@ $('booking-form').onsubmit = async (e) => {
 
   let ok = true;
   if (!name) { setError('name', 'กรุณากรอกชื่อ-นามสกุล'); ok = false; }
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('phone', 'เบอร์โทรไม่ถูกต้อง'); ok = false; }
+  if (!normalizePhone(phone)) { setError('phone', 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0'); ok = false; }
   // Email is optional — only validate when something is typed
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
   if (state.phoneLimitBy) { setError('phone', `เบอร์นี้จองวันที่เลือกครบ ${PHONE_BOOKING_LIMIT} ใบแล้ว — เลือกวันอื่นหรือตรวจสอบสถานะ`); ok = false; }
@@ -1477,7 +1500,7 @@ $('lookup-form').onsubmit = async (e) => {
   e.preventDefault();
   clearErrors(); hideAlert();
   const phone = $('lk-phone').value.trim();
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('lk-phone', 'เบอร์โทรไม่ถูกต้อง'); return; }
+  if (!normalizePhone(phone)) { setError('lk-phone', 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0'); return; }
   const btn = $('lookup-btn'); btn.disabled = true; btn.textContent = 'กำลังค้นหา...';
   try {
     if (!state.config) state.config = await fetch('/api/config').then(r => r.json());

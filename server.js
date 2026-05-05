@@ -212,6 +212,25 @@ db.exec(`
   db.exec(`CREATE INDEX IF NOT EXISTS idx_slip_ref ON bookings(slip_ref);`);
 })();
 
+// One-time normalize: rewrite any non-canonical phone numbers in DB so all
+// queries against the new normalizePhone() output line up with stored values.
+(function migratePhoneFormat() {
+  try {
+    const rows = db.prepare('SELECT id, phone FROM bookings').all();
+    const stmt = db.prepare('UPDATE bookings SET phone = ? WHERE id = ?');
+    let n = 0;
+    for (const r of rows) {
+      const norm = normalizePhone(r.phone);
+      if (norm && norm !== r.phone) { stmt.run(norm, r.id); n++; }
+    }
+    if (n) console.log(`[migrate] normalized ${n} phone number(s) to canonical 10-digit form`);
+  } catch (e) {
+    // normalizePhone is defined later in the file; guard against load-order issues
+    if (e instanceof ReferenceError) return;
+    console.error('phone migration failed:', e.message);
+  }
+})();
+
 // ─── System log helper ──────────────────────────────────────
 function logSys(action, details, bookingsBefore, bookingsAfter) {
   try {
@@ -240,8 +259,6 @@ function generateCode() {
   throw new Error('Could not generate unique code');
 }
 
-const normalizePhone = p => String(p || '').replace(/[\s\-+()]/g, '');
-
 function slotUsage(date, time) {
   const row = db.prepare(`
     SELECT COALESCE(SUM(num_people), 0) AS total
@@ -262,6 +279,19 @@ function publicView(b) {
   return out;
 }
 
+// Normalize a Thai phone to canonical 10-digit form '0XXXXXXXXX'.
+// Accepts: '0812345678', '081-234-5678', '+66812345678', '66812345678',
+//          '00 66 812 345 678'. Rejects anything that can't be coerced
+// to exactly 10 digits starting with '0'. Returns null on failure.
+function normalizePhone(raw) {
+  if (raw == null) return null;
+  let d = String(raw).replace(/\D/g, '');
+  if (d.length === 11 && d.startsWith('66'))         d = '0' + d.slice(2);
+  else if (d.length === 13 && d.startsWith('0066'))  d = '0' + d.slice(4);
+  if (d.length !== 10 || !d.startsWith('0')) return null;
+  return d;
+}
+
 function validateBooking(b) {
   const errors = {};
   const people = Number(b.num_people);
@@ -271,7 +301,7 @@ function validateBooking(b) {
   if (!BOOKING_DATES.includes(b.booking_date)) errors.booking_date = 'วันที่ไม่ถูกต้อง';
   if (!TIME_SLOTS.includes(b.time_slot)) errors.time_slot = 'รอบเวลาไม่ถูกต้อง';
   if (!b.name || !String(b.name).trim()) errors.name = 'กรุณากรอกชื่อ-นามสกุล';
-  if (!/^[0-9\-+\s()]{9,15}$/.test(String(b.phone || '').trim())) errors.phone = 'เบอร์โทรไม่ถูกต้อง';
+  if (!normalizePhone(b.phone)) errors.phone = 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0';
   // Email is optional — validate format only when provided
   const email = String(b.email || '').trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'รูปแบบอีเมลไม่ถูกต้อง';
@@ -637,7 +667,8 @@ app.post('/api/booking', (req, res) => {
   if (Object.keys(errors).length) return res.status(400).json({ error: 'invalid', fields: errors });
 
   const { booking_date, time_slot, num_people, name, phone, email } = req.body;
-  const phoneClean = String(phone).trim();
+  const phoneClean = normalizePhone(phone);
+  if (!phoneClean) return res.status(400).json({ error: 'invalid', fields: { phone: 'เบอร์โทรต้องเป็น 10 หลัก เริ่มด้วย 0' } });
 
   const tx = db.transaction(() => {
     // One phone = up to MAX_BOOKINGS_PER_PHONE_PER_DAY bookings per day.
@@ -705,9 +736,9 @@ app.post('/api/booking', (req, res) => {
 // for the same phone on the same day. Same phone can book up to
 // MAX_BOOKINGS_PER_PHONE_PER_DAY active bookings per day.
 app.get('/api/booking/check', (req, res) => {
-  const phone = String(req.query.phone || '').trim();
-  const date  = String(req.query.date  || '').trim();
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) {
+  const phone = normalizePhone(req.query.phone);
+  const date  = String(req.query.date || '').trim();
+  if (!phone) {
     return res.json({ count: 0, max: MAX_BOOKINGS_PER_PHONE_PER_DAY, limit_reached: false, bookings: [] });
   }
 
@@ -743,10 +774,8 @@ app.get('/api/booking/check', (req, res) => {
 // Lookup bookings by phone (used when returning users come back).
 // Includes rejected bookings so the customer can see *why* and re-upload.
 app.get('/api/booking/lookup', (req, res) => {
-  const phone = String(req.query.phone || '').trim();
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) {
-    return res.status(400).json({ error: 'invalid_phone' });
-  }
+  const phone = normalizePhone(req.query.phone);
+  if (!phone) return res.status(400).json({ error: 'invalid_phone' });
   const rows = db.prepare(`
     SELECT * FROM bookings
     WHERE phone = ?
@@ -767,7 +796,7 @@ app.post('/api/booking/:id/slip', (req, res, next) => {
   });
 }, (req, res) => {
   const id = Number(req.params.id);
-  const phone = String(req.body.phone || '').trim();
+  const phone = normalizePhone(req.body.phone);
   if (!Number.isFinite(id) || !phone) {
     if (req.file) unlinkSlip(req.file.filename);
     return res.status(400).json({ error: 'invalid' });
@@ -864,6 +893,10 @@ app.get('/api/admin/search', requireAdmin, (req, res) => {
   const phoneCondOK = /^\d+$/.test(phoneClean);
   const nameLike  = `%${q}%`;
   const phoneLike = `%${phoneClean}%`;
+  // If the query parses as a full international/local phone, also do an
+  // exact match on the canonical 10-digit form so '66898979535' finds
+  // '0898979535' in the DB.
+  const phoneExact = normalizePhone(q);
 
   let rows;
   if (phoneCondOK && phoneClean.length >= 2) {
@@ -874,10 +907,10 @@ app.get('/api/admin/search', requireAdmin, (req, res) => {
              original_date, original_time, transferred_at,
              used, used_at, created_at
       FROM bookings
-      WHERE name LIKE ? OR phone LIKE ?
+      WHERE name LIKE ? OR phone LIKE ? OR phone = ?
       ORDER BY created_at DESC
       LIMIT 50
-    `).all(nameLike, phoneLike);
+    `).all(nameLike, phoneLike, phoneExact || '');
   } else {
     rows = db.prepare(`
       SELECT id, code, name, phone, email, num_people,
