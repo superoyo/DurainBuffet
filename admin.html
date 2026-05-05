@@ -723,6 +723,17 @@
     gap: 8px;
   }
   .booking-row-name { font-weight: 800; font-size: 14px; color: var(--text); }
+  .booking-row-when {
+    font-size: 11px; color: var(--muted); font-weight: 500;
+    white-space: nowrap;
+  }
+  .cancel-countdown {
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-weight: 700; letter-spacing: 0.5px;
+    background: rgba(255,255,255,0.25);
+    padding: 1px 5px; border-radius: 4px;
+  }
+  .cancel-countdown.expired { color: #FECACA; }
   .booking-row-key {
     display: flex; flex-wrap: wrap; gap: 8px;
     align-items: center;
@@ -2247,6 +2258,7 @@ const LOG_ACTION_LABEL = {
   data_clear:            '🗑 เคลียร์ข้อมูล',
   admin_password_change: '🔑 เปลี่ยนรหัส admin',
   admin_password_reset:  '↩️ คืนค่ารหัสจาก env',
+  auto_cancel_expired:   '⌛ ยกเลิกอัตโนมัติ (หมดเวลา)',
 };
 
 async function loadSystemLog() {
@@ -2276,6 +2288,8 @@ async function loadSystemLog() {
         detail = e.details?.user_changed ? `เปลี่ยนรหัส + ชื่อผู้ใช้ → ${escapeHtml(e.details.new_user || '?')}` : 'เปลี่ยนรหัส';
       } else if (e.action === 'admin_password_reset') {
         detail = 'คืนค่าจาก Railway env';
+      } else if (e.action === 'auto_cancel_expired') {
+        detail = `${e.details?.count ?? '?'} รายการ (เกิน ${e.details?.grace_minutes ?? 60} นาที)`;
       }
       return `
         <div class="log-entry action-${escapeHtml(e.action)}">
@@ -2573,20 +2587,22 @@ function renderBookingRow(b) {
     actions.push(`<button class="btn btn-ghost" data-action="reset">รีเซ็ต</button>`);
   }
   // Cancel button:
-  //  - pending: only show once past the 1-hour grace window. Label
-  //    is "ยกเลิก จองเมื่อ HH:MM (เกิน Hชม Mนาที)" where the parenthesised
-  //    overage = now - (bookingTime + 1 hour).
-  //  - other non-cancelled non-used statuses: plain "ยกเลิก".
+  //  - pending: show during the 60-min grace window with a live MM:SS countdown
+  //    labelled "ยกเลิกอัตโนมัติใน MM:SS". When time runs out, the server
+  //    auto-cancels (next list refresh will show the row as cancelled).
+  //  - submitted/rejected (and any other non-cancelled non-verified non-used):
+  //    plain "ยกเลิก", takes effect immediately.
   if (b.payment_status !== 'cancelled' && b.payment_status !== 'verified' && !b.used) {
     if (b.payment_status === 'pending') {
       const mins = elapsedMinutes(b);
-      const when = fmtBookingCreatedAt(b);
-      if (mins !== null && mins >= 60 && when) {
-        const overage = mins - 60;
-        const cancelLabel = `🚫 ยกเลิก จองเมื่อ ${when} (เกิน ${fmtHoursMinutes(overage)})`;
-        actions.push(`<button class="btn btn-danger" data-action="cancel">${cancelLabel}</button>`);
+      if (mins !== null && mins < 60 && b.created_at) {
+        // ISO with 'Z' suffix so the browser interprets stored UTC correctly
+        const deadlineIso = new Date(new Date(b.created_at + 'Z').getTime() + 60 * 60 * 1000).toISOString();
+        actions.push(
+          `<button class="btn btn-danger" data-action="cancel">⏳ ยกเลิกอัตโนมัติใน <span class="cancel-countdown" data-deadline="${deadlineIso}">--:--</span></button>`
+        );
       }
-      // else: still within grace — no cancel button
+      // else: already past grace — server-side job will cancel within next minute
     } else {
       actions.push(`<button class="btn btn-danger" data-action="cancel">🚫 ยกเลิก</button>`);
     }
@@ -2602,9 +2618,13 @@ function renderBookingRow(b) {
     ? `<span>📧 ${escapeHtml(b.email)}</span>`
     : '';
 
+  const bookedAt = fmtBookingCreatedAt(b);
+  const bookedAtLabel = bookedAt
+    ? `<span class="booking-row-when">· จองเมื่อ ${bookedAt}</span>`
+    : '';
   div.innerHTML = `
     <div class="booking-row-head">
-      <div class="booking-row-name">${escapeHtml(b.name)}</div>
+      <div class="booking-row-name">${escapeHtml(b.name)} ${bookedAtLabel}</div>
       <div style="text-align:right;">
         ${statusBadge}${usedBadge}
       </div>
@@ -2627,6 +2647,43 @@ function renderBookingRow(b) {
   });
   return div;
 }
+
+// ─── Live ticker for cancel-countdown spans ─────────────────
+// Runs every second; updates "MM:SS" remaining for every visible
+// `.cancel-countdown[data-deadline=...]`. When the first one expires we
+// trigger a refresh so the row appears in its new (cancelled) state once
+// the server-side auto-cancel job has run.
+let _expiredRefreshScheduled = false;
+function tickCancelCountdowns() {
+  const els = document.querySelectorAll('.cancel-countdown[data-deadline]');
+  if (!els.length) return;
+  const now = Date.now();
+  let anyExpired = false;
+  for (const el of els) {
+    const deadline = Date.parse(el.dataset.deadline);
+    const ms = deadline - now;
+    if (ms <= 0) {
+      el.textContent = '00:00';
+      el.classList.add('expired');
+      anyExpired = true;
+    } else {
+      const totalSec = Math.floor(ms / 1000);
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      el.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+  }
+  if (anyExpired && !_expiredRefreshScheduled) {
+    // Server's auto-cancel job runs every 60s. Wait a bit to let it land,
+    // then refresh the booking list so the row shows as cancelled.
+    _expiredRefreshScheduled = true;
+    setTimeout(() => {
+      _expiredRefreshScheduled = false;
+      if (typeof refreshAll === 'function') refreshAll().catch(() => {});
+    }, 5000);
+  }
+}
+setInterval(tickCancelCountdowns, 1000);
 
 // ─── Selection handler ───────────────────────────────────
 async function selectTime(time) {

@@ -29,6 +29,7 @@ const BANK_INFO = {
 
 const SLOT_CAPACITY = 100;
 const MAX_PEOPLE_PER_BOOKING = 5;
+const MAX_BOOKINGS_PER_PHONE_PER_DAY = 5;
 const TIME_SLOTS = [
   '10:00', '11:00', '12:00', '13:00', '14:00',
   '15:00', '16:00', '17:00', '18:00', '19:00',
@@ -639,18 +640,20 @@ app.post('/api/booking', (req, res) => {
   const phoneClean = String(phone).trim();
 
   const tx = db.transaction(() => {
-    // One phone = one booking per day. Cancelled bookings don't count
-    // (so the customer can re-book after admin cancels). Different days
-    // are allowed — same phone can book May 15 AND May 16 separately.
-    const dup = db.prepare(`
+    // One phone = up to MAX_BOOKINGS_PER_PHONE_PER_DAY bookings per day.
+    // Cancelled bookings don't count (so the customer can re-book after
+    // admin cancels). Different days are independent.
+    const existing = db.prepare(`
       SELECT id, booking_date, time_slot, payment_status
       FROM bookings
       WHERE phone = ? AND booking_date = ? AND payment_status != 'cancelled'
-    `).get(phoneClean, booking_date);
-    if (dup) {
-      const err = new Error('phone_exists');
-      err.code = 'PHONE_EXISTS';
-      err.existing = dup;
+      ORDER BY created_at ASC
+    `).all(phoneClean, booking_date);
+    if (existing.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY) {
+      const err = new Error('phone_limit_reached');
+      err.code = 'PHONE_LIMIT';
+      err.count = existing.length;
+      err.existing = existing;
       throw err;
     }
 
@@ -681,11 +684,13 @@ app.post('/api/booking', (req, res) => {
     const row = tx();
     res.status(201).json(publicView(row));
   } catch (e) {
-    if (e.code === 'PHONE_EXISTS') {
+    if (e.code === 'PHONE_LIMIT') {
       return res.status(409).json({
-        error: 'phone_exists',
+        error: 'phone_limit_reached',
+        count: e.count,
+        max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
         existing: e.existing,
-        message: 'เบอร์นี้เคยจองแล้ว — กรุณาเข้าตรวจสอบสถานะ',
+        message: `เบอร์นี้จองในวันที่เลือกครบ ${MAX_BOOKINGS_PER_PHONE_PER_DAY} ใบแล้ว — กรุณาตรวจสอบสถานะหรือเลือกวันอื่น`,
       });
     }
     if (e.code === 'FULL') {
@@ -696,35 +701,42 @@ app.post('/api/booking', (req, res) => {
   }
 });
 
-// Realtime check used by the booking form to flag a phone before submit.
-// If `date` is provided, only the per-day uniqueness rule is checked
-// (same phone may book different days). Without date, returns the most
-// recent active booking for the phone (used by lookups elsewhere).
+// Realtime check used by the booking form to advise about existing bookings
+// for the same phone on the same day. Same phone can book up to
+// MAX_BOOKINGS_PER_PHONE_PER_DAY active bookings per day.
 app.get('/api/booking/check', (req, res) => {
   const phone = String(req.query.phone || '').trim();
   const date  = String(req.query.date  || '').trim();
-  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) return res.json({ exists: false });
+  if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) {
+    return res.json({ count: 0, max: MAX_BOOKINGS_PER_PHONE_PER_DAY, limit_reached: false, bookings: [] });
+  }
 
-  let row;
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    row = db.prepare(`
+    const rows = db.prepare(`
       SELECT booking_date, time_slot, payment_status
       FROM bookings
       WHERE phone = ? AND booking_date = ? AND payment_status != 'cancelled'
-    `).get(phone, date);
-  } else {
-    row = db.prepare(`
-      SELECT booking_date, time_slot, payment_status
-      FROM bookings WHERE phone = ? AND payment_status != 'cancelled'
-      ORDER BY created_at DESC LIMIT 1
-    `).get(phone);
+      ORDER BY created_at ASC
+    `).all(phone, date);
+    return res.json({
+      count: rows.length,
+      max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
+      limit_reached: rows.length >= MAX_BOOKINGS_PER_PHONE_PER_DAY,
+      bookings: rows,
+    });
   }
-  if (!row) return res.json({ exists: false });
+  // Without date: return the most recent active booking for info display
+  const last = db.prepare(`
+    SELECT booking_date, time_slot, payment_status
+    FROM bookings WHERE phone = ? AND payment_status != 'cancelled'
+    ORDER BY created_at DESC LIMIT 1
+  `).get(phone);
   res.json({
-    exists: true,
-    booking_date: row.booking_date,
-    time_slot: row.time_slot,
-    payment_status: row.payment_status,
+    count: 0,
+    max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
+    limit_reached: false,
+    bookings: [],
+    last_booking: last || null,
   });
 });
 
@@ -1500,6 +1512,34 @@ app.get('/api/admin/system-log', requireAdmin, (req, res) => {
 function safeJsonParse(s) {
   try { return JSON.parse(s); } catch { return s; }
 }
+
+// ─── Auto-cancel expired pending bookings ────────────────────
+// Pending booking with no slip after 60 minutes since creation is treated
+// as expired and auto-cancelled. The slot is freed automatically.
+const PENDING_GRACE_MINUTES = 60;
+function autoCancelExpiredPending() {
+  try {
+    const result = db.prepare(`
+      UPDATE bookings
+      SET payment_status  = 'cancelled',
+          rejected_reason = 'หมดเวลาชำระ — ยกเลิกอัตโนมัติ'
+      WHERE payment_status = 'pending'
+        AND slip_path IS NULL
+        AND datetime(created_at) <= datetime('now', '-${PENDING_GRACE_MINUTES} minutes')
+    `).run();
+    if (result.changes > 0) {
+      logSys('auto_cancel_expired', { count: result.changes, grace_minutes: PENDING_GRACE_MINUTES });
+      console.log(`[auto-cancel] cancelled ${result.changes} expired pending booking(s)`);
+    }
+    return result.changes;
+  } catch (e) {
+    console.error('autoCancelExpiredPending failed:', e.message);
+    return 0;
+  }
+}
+// Run once on boot then every minute
+autoCancelExpiredPending();
+setInterval(autoCancelExpiredPending, 60 * 1000);
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

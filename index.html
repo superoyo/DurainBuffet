@@ -930,7 +930,8 @@ const state = {
   availability: null,
   booking: null,
   slipFile: null,
-  phoneTakenBy: null,   // existing booking found by realtime check
+  phoneTakenBy: null,   // any existing booking on this date (count > 0)
+  phoneLimitBy: null,   // existing bookings reached the per-day limit
   phoneCheckTimer: null,
   // lookup
   lkPhone: null,
@@ -1104,23 +1105,52 @@ function setError(field, msg) {
   if (el) el.textContent = msg;
 }
 
-// Realtime phone check — flags an existing booking before the user submits
+// Realtime phone check — informs about existing bookings before submit
 function clearPhoneWarning() {
-  state.phoneTakenBy = null;
-  $('phone-warning').style.display = 'none';
-  $('phone-warning').className = 'alert';
-}
-function showPhoneWarning(data, phone) {
-  state.phoneTakenBy = phone;
   const w = $('phone-warning');
-  const s = STATUS_LABEL[data.payment_status] || STATUS_LABEL.pending;
-  w.className = 'alert error';
-  w.style.display = 'block';
-  w.innerHTML = `
-    เบอร์นี้เคยจองวันเดียวกันนี้แล้ว · ${fmtDateLong(data.booking_date)} · ${fmtSlot(data.time_slot)} · ${s.label}
-    <a href="#" id="go-lookup-from-warning" style="color:#7F1D1D; font-weight:800; text-decoration:underline; margin-left:6px;">→ ตรวจสอบสถานะ</a>
-  `;
-  $('go-lookup-from-warning').onclick = (e) => {
+  w.style.display = 'none';
+  w.className = 'alert';
+  w.style.background = '';
+  w.style.borderColor = '';
+  w.style.color = '';
+  state.phoneTakenBy = null;
+  state.phoneLimitBy = null;
+}
+// One phone can book up to PHONE_BOOKING_LIMIT bookings per day. Show an
+// informational banner with current count + remaining; turn it red and block
+// submit only when the limit has been reached.
+const PHONE_BOOKING_LIMIT = 5;
+function showPhoneInfo(data, phone) {
+  state.phoneTakenBy = phone;
+  state.phoneLimitBy = data.limit_reached ? phone : null;
+  const w = $('phone-warning');
+  const count = data.count || 0;
+  const max = data.max || PHONE_BOOKING_LIMIT;
+  const remaining = Math.max(0, max - count);
+  const lookupLink = `<a href="#" id="go-lookup-from-warning" style="font-weight:800; text-decoration:underline; margin-left:6px;">→ ตรวจสอบสถานะ</a>`;
+  if (data.limit_reached) {
+    w.className = 'alert error';
+    w.style.display = 'block';
+    w.innerHTML = `
+      ⛔ เบอร์นี้จองวันที่เลือก <b>ครบ ${max} ใบ</b>แล้ว — ไม่สามารถจองเพิ่มได้ · กรุณาเลือกวันอื่น
+      ${lookupLink}
+    `;
+  } else if (count > 0) {
+    w.className = 'alert';
+    w.style.display = 'block';
+    w.style.background = '#FEF3C7';
+    w.style.borderColor = '#F59E0B';
+    w.style.color = '#92400E';
+    w.innerHTML = `
+      ℹ️ เบอร์นี้มี <b>${count}</b> รายการในวันนี้แล้ว · จองได้อีก <b>${remaining}</b> ใบ
+      ${lookupLink}
+    `;
+  } else {
+    clearPhoneWarning();
+    return;
+  }
+  const link = $('go-lookup-from-warning');
+  if (link) link.onclick = (e) => {
     e.preventDefault();
     document.querySelector('.tab[data-mode="lookup"]').click();
     $('lk-phone').value = phone;
@@ -1129,14 +1159,12 @@ function showPhoneWarning(data, phone) {
 }
 async function recheckPhoneForCurrentDate(phone) {
   try {
-    // Per-day uniqueness — only flag conflicts on the date the customer is booking
-    const url = state.date
-      ? `/api/booking/check?phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(state.date)}`
-      : `/api/booking/check?phone=${encodeURIComponent(phone)}`;
+    // Per-day quota check — show count + remaining for the day the customer is booking
+    if (!state.date) { clearPhoneWarning(); return; }
+    const url = `/api/booking/check?phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(state.date)}`;
     const res = await fetch(url);
     const data = await res.json();
-    if (data.exists) showPhoneWarning(data, phone);
-    else clearPhoneWarning();
+    showPhoneInfo(data, phone);
   } catch { /* network blip — server-side check is authoritative */ }
 }
 $('f-phone').addEventListener('input', (e) => {
@@ -1161,7 +1189,7 @@ $('booking-form').onsubmit = async (e) => {
   if (!/^[0-9\-+\s()]{9,15}$/.test(phone)) { setError('phone', 'เบอร์โทรไม่ถูกต้อง'); ok = false; }
   // Email is optional — only validate when something is typed
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('email', 'รูปแบบอีเมลไม่ถูกต้อง'); ok = false; }
-  if (state.phoneTakenBy) { setError('phone', 'เบอร์นี้เคยจองแล้ว — กรุณาเข้าตรวจสอบสถานะ'); ok = false; }
+  if (state.phoneLimitBy) { setError('phone', `เบอร์นี้จองวันที่เลือกครบ ${PHONE_BOOKING_LIMIT} ใบแล้ว — เลือกวันอื่นหรือตรวจสอบสถานะ`); ok = false; }
   if (!ok) return;
 
   const btn = $('submit-booking');
@@ -1181,9 +1209,9 @@ $('booking-form').onsubmit = async (e) => {
     const data = await res.json();
     if (!res.ok) {
       if (data.fields) for (const [k, v] of Object.entries(data.fields)) setError(k, v);
-      else if (data.error === 'phone_exists') {
-        if (data.existing) showPhoneWarning(data.existing, phone);
-        showAlert(data.message || 'เบอร์นี้เคยจองแล้ว — กรุณาเข้าตรวจสอบสถานะ');
+      else if (data.error === 'phone_limit_reached') {
+        showPhoneInfo({ count: data.count, max: data.max, limit_reached: true }, phone);
+        showAlert(data.message || `เบอร์นี้จองวันที่เลือกครบ ${data.max || PHONE_BOOKING_LIMIT} ใบแล้ว`);
       } else if (data.error === 'full') {
         showAlert(`ขออภัย รอบนี้เต็มแล้ว เหลือเพียง ${data.remaining} ที่นั่ง — กรุณาเลือกรอบใหม่`);
         await loadAvailability();
