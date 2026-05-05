@@ -29,7 +29,10 @@ const BANK_INFO = {
 
 const SLOT_CAPACITY = 100;
 const MAX_PEOPLE_PER_BOOKING = 5;
-const MAX_BOOKINGS_PER_PHONE_PER_DAY = 5;
+// One phone = one booking per day. The booking itself can hold up to
+// MAX_PEOPLE_PER_BOOKING people. Cancelled bookings don't count towards
+// this quota so the customer can re-book after admin cancels.
+const MAX_BOOKINGS_PER_PHONE_PER_DAY = 1;
 const TIME_SLOTS = [
   '10:00', '11:00', '12:00', '13:00', '14:00',
   '15:00', '16:00', '17:00', '18:00', '19:00',
@@ -721,7 +724,7 @@ app.post('/api/booking', (req, res) => {
         count: e.count,
         max: MAX_BOOKINGS_PER_PHONE_PER_DAY,
         existing: e.existing,
-        message: `เบอร์นี้จองในวันที่เลือกครบ ${MAX_BOOKINGS_PER_PHONE_PER_DAY} ใบแล้ว — กรุณาตรวจสอบสถานะหรือเลือกวันอื่น`,
+        message: 'เบอร์นี้เคยจองวันที่เลือกแล้ว — กรุณาตรวจสอบสถานะหรือเลือกวันอื่น',
       });
     }
     if (e.code === 'FULL') {
