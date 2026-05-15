@@ -27,7 +27,7 @@ const BANK_INFO = {
   price_per_person: Number(process.env.PRICE_PER_PERSON || 199),
 };
 
-const SLOT_CAPACITY = 100;
+const DEFAULT_SLOT_CAPACITY = 100;
 const MAX_PEOPLE_PER_BOOKING = 5;
 // Quota: same phone can have any number of bookings on a single calendar
 // day, but the SUM of num_people across those bookings must not exceed
@@ -275,6 +275,41 @@ function slotUsage(date, time) {
       AND payment_status NOT IN ('rejected', 'cancelled')
   `).get(date, time);
   return row.total;
+}
+
+// ─── Per-day slot capacity (admin-configurable) ─────────────
+// settings['slot_capacity_overrides'] = JSON { "YYYY-MM-DD": number }.
+// Any date not present falls back to DEFAULT_SLOT_CAPACITY.
+function getCapacityOverrides() {
+  try {
+    const raw = getSetting('slot_capacity_overrides', '');
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : {};
+  } catch { return {}; }
+}
+function getSlotCapacity(date) {
+  const ov = getCapacityOverrides();
+  const v = Number(ov[date]);
+  return Number.isFinite(v) && v > 0 ? v : DEFAULT_SLOT_CAPACITY;
+}
+function setSlotCapacity(date, capacity) {
+  const ov = getCapacityOverrides();
+  ov[date] = capacity;
+  setSetting('slot_capacity_overrides', JSON.stringify(ov));
+}
+// Highest per-slot booked people across all slots of a day — the floor
+// below which capacity cannot be reduced (would orphan existing bookings).
+function maxSlotUsageForDay(date) {
+  const rows = db.prepare(`
+    SELECT time_slot, COALESCE(SUM(num_people), 0) AS total
+    FROM bookings
+    WHERE booking_date = ? AND payment_status NOT IN ('rejected', 'cancelled')
+    GROUP BY time_slot
+  `).all(date);
+  let max = 0;
+  for (const r of rows) if (r.total > max) max = r.total;
+  return max;
 }
 
 // Strip sensitive fields and hide code until payment is verified.
@@ -572,6 +607,45 @@ app.get('/api/admin/site-settings', requireAdmin, (req, res) => {
   });
 });
 
+// Per-day slot capacity: list current values + floor (max booked/slot)
+app.get('/api/admin/day-capacity', requireAdmin, (req, res) => {
+  const dates = BOOKING_DATES.map(d => ({
+    date: d,
+    capacity: getSlotCapacity(d),
+    min_allowed: maxSlotUsageForDay(d), // can't reduce below this
+  }));
+  res.json({
+    default: DEFAULT_SLOT_CAPACITY,
+    slots_per_day: TIME_SLOTS.length,
+    dates,
+  });
+});
+
+// Set capacity for a single day. Decreasing is blocked below the busiest
+// slot's booked headcount that day (would orphan existing bookings).
+app.post('/api/admin/day-capacity', requireAdmin, (req, res) => {
+  const date = String(req.body?.date || '').trim();
+  const capacity = Number(req.body?.capacity);
+  if (!BOOKING_DATES.includes(date)) {
+    return res.status(400).json({ error: 'invalid_date', message: 'วันที่ไม่อยู่ในช่วงที่เปิดจอง' });
+  }
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > 100000) {
+    return res.status(400).json({ error: 'invalid_capacity', message: 'จำนวนคนต่อรอบต้องเป็นจำนวนเต็มบวก' });
+  }
+  const floor = maxSlotUsageForDay(date);
+  if (capacity < floor) {
+    return res.status(409).json({
+      error: 'below_floor',
+      min_allowed: floor,
+      message: `ลดไม่ได้ — รอบที่จองเยอะสุดของวันนี้มี ${floor} คนแล้ว ตั้งได้ต่ำสุด ${floor}`,
+    });
+  }
+  const prev = getSlotCapacity(date);
+  setSlotCapacity(date, capacity);
+  logSys('day_capacity_change', { date, from: prev, to: capacity });
+  res.json({ ok: true, date, capacity, previous: prev, min_allowed: floor });
+});
+
 app.post('/api/admin/site-settings', requireAdmin, (req, res) => {
   const body = req.body || {};
   const errors = {};
@@ -628,10 +702,13 @@ app.delete('/api/admin/banner', requireAdmin, (req, res) => {
 
 // ─── Public APIs ────────────────────────────────────────────────────────
 app.get('/api/config', (req, res) => {
+  const capacities = {};
+  for (const d of BOOKING_DATES) capacities[d] = getSlotCapacity(d);
   res.json({
     dates: BOOKING_DATES,
     slots: TIME_SLOTS,
-    capacity: SLOT_CAPACITY,
+    capacity: DEFAULT_SLOT_CAPACITY,
+    capacities,
     bank: BANK_INFO,
   });
 });
@@ -650,13 +727,14 @@ app.get('/api/availability', (req, res) => {
   const result = {};
   for (const date of BOOKING_DATES) {
     result[date] = {};
+    const cap = getSlotCapacity(date);
     for (const time of TIME_SLOTS) {
       const booked = usage.get(`${date}|${time}`) || 0;
-      const remaining = SLOT_CAPACITY - booked;
-      result[date][time] = { booked, remaining, available: remaining >= people };
+      const remaining = cap - booked;
+      result[date][time] = { booked, remaining, available: remaining >= people, capacity: cap };
     }
   }
-  res.json({ people, capacity: SLOT_CAPACITY, slots: result });
+  res.json({ people, capacity: DEFAULT_SLOT_CAPACITY, slots: result });
 });
 
 app.post('/api/booking', (req, res) => {
@@ -701,10 +779,10 @@ app.post('/api/booking', (req, res) => {
     }
 
     const used = slotUsage(booking_date, time_slot);
-    if (used + num_people > SLOT_CAPACITY) {
+    if (used + num_people > getSlotCapacity(booking_date)) {
       const err = new Error('full');
       err.code = 'FULL';
-      err.remaining = SLOT_CAPACITY - used;
+      err.remaining = getSlotCapacity(booking_date) - used;
       throw err;
     }
     const code = generateCode();
@@ -827,9 +905,9 @@ app.post('/api/booking/:id/slip', (req, res, next) => {
   // recheck before letting the booking back in (someone else may have taken the seats).
   if (booking.payment_status === 'rejected') {
     const used = slotUsage(booking.booking_date, booking.time_slot);
-    if (used + booking.num_people > SLOT_CAPACITY) {
+    if (used + booking.num_people > getSlotCapacity(booking.booking_date)) {
       unlinkSlip(req.file.filename);
-      const remaining = SLOT_CAPACITY - used;
+      const remaining = getSlotCapacity(booking.booking_date) - used;
       return res.status(409).json({
         error: 'slot_full',
         remaining,
@@ -885,11 +963,11 @@ app.get('/api/admin/overview', requireAdmin, (req, res) => {
         bookings_count: r?.bookings_count ?? 0,
         pending_review_count: r?.pending_review_count ?? 0,
         unpaid_count: r?.unpaid_count ?? 0,
-        capacity: SLOT_CAPACITY,
+        capacity: getSlotCapacity(date),
       };
     }
   }
-  res.json({ dates: BOOKING_DATES, slots: TIME_SLOTS, capacity: SLOT_CAPACITY, matrix });
+  res.json({ dates: BOOKING_DATES, slots: TIME_SLOTS, capacity: DEFAULT_SLOT_CAPACITY, matrix });
 });
 
 // Free-text search across name + phone — used by admin home search bar.
@@ -982,7 +1060,7 @@ app.get('/api/admin/bookings', requireAdmin, (req, res) => {
     const submitted = active.filter(b => b.payment_status === 'submitted').reduce((s, b) => s + b.num_people, 0);
     const usedCnt   = active.filter(b => b.used).reduce((s, b) => s + b.num_people, 0);
     stats = {
-      capacity: SLOT_CAPACITY,
+      capacity: getSlotCapacity(date),
       total_people: total,
       verified_people: verified,
       pending_review_people: submitted,
@@ -1017,7 +1095,7 @@ app.get('/api/admin/slot', requireAdmin, (req, res) => {
 
   res.json({
     date, time,
-    capacity: SLOT_CAPACITY,
+    capacity: getSlotCapacity(date),
     total_people: total,
     verified_people: verified,
     pending_review_people: submitted,
@@ -1036,6 +1114,79 @@ app.get('/api/admin/bookings/:id/slip', requireAdmin, (req, res) => {
   if (!filePath.startsWith(SLIPS_DIR + path.sep)) return res.status(400).end();
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'file_missing' });
   res.sendFile(filePath);
+});
+
+// ─── Reports: name list (CSV) + slips (ZIP) per slot or whole day ──────
+const STATUS_TH = {
+  pending: 'รอชำระ', submitted: 'รอตรวจสลิป', verified: 'ยืนยันแล้ว',
+  rejected: 'ปฏิเสธสลิป', cancelled: 'ยกเลิกการจอง',
+};
+function csvCell(v) {
+  const s = v == null ? '' : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function bookingsCsv(rows) {
+  const headers = ['#', 'รหัสตั๋ว', 'ชื่อ-นามสกุล', 'เบอร์โทร', 'อีเมล',
+    'จำนวนคน', 'วันที่จอง', 'รอบเวลา', 'สถานะ', 'ใช้สิทธิ์',
+    'ส่งสลิปเมื่อ', 'ยืนยันเมื่อ', 'ยอด/อ้างอิงสลิป', 'เหตุผลปฏิเสธ/ยกเลิก', 'created_at'];
+  const lines = rows.map((b, i) => [
+    i + 1, b.code || '', b.name, b.phone, b.email || '',
+    b.num_people, b.booking_date, b.time_slot,
+    STATUS_TH[b.payment_status] || b.payment_status,
+    b.used ? 'ใช้สิทธิ์แล้ว' : '',
+    b.slip_uploaded_at || '', b.verified_at || '',
+    b.slip_ref || '', b.rejected_reason || '', b.created_at || '',
+  ].map(csvCell).join(','));
+  return [headers.map(csvCell).join(','), ...lines].join('\r\n');
+}
+
+// GET /api/admin/report/names?date=YYYY-MM-DD[&time=HH:MM]
+// date only → whole day (all slots); date+time → single slot
+app.get('/api/admin/report/names', requireAdmin, (req, res) => {
+  const date = String(req.query.date || '').trim();
+  const time = String(req.query.time || '').trim();
+  if (!BOOKING_DATES.includes(date)) return res.status(400).json({ error: 'invalid_date' });
+  let rows;
+  if (time) {
+    if (!TIME_SLOTS.includes(time)) return res.status(400).json({ error: 'invalid_time' });
+    rows = db.prepare(`SELECT * FROM bookings WHERE booking_date = ? AND time_slot = ? ORDER BY time_slot, created_at ASC`).all(date, time);
+  } else {
+    rows = db.prepare(`SELECT * FROM bookings WHERE booking_date = ? ORDER BY time_slot, created_at ASC`).all(date);
+  }
+  const fname = time ? `names-${date}-${time.replace(':', '')}.csv` : `names-${date}-allday.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+  res.send('﻿' + bookingsCsv(rows)); // BOM for Excel Thai
+});
+
+// GET /api/admin/report/slips?date=YYYY-MM-DD[&time=HH:MM] → ZIP of slip images
+app.get('/api/admin/report/slips', requireAdmin, (req, res) => {
+  const date = String(req.query.date || '').trim();
+  const time = String(req.query.time || '').trim();
+  if (!BOOKING_DATES.includes(date)) return res.status(400).json({ error: 'invalid_date' });
+  let rows;
+  if (time) {
+    if (!TIME_SLOTS.includes(time)) return res.status(400).json({ error: 'invalid_time' });
+    rows = db.prepare(`SELECT * FROM bookings WHERE booking_date = ? AND time_slot = ? AND slip_path IS NOT NULL ORDER BY created_at ASC`).all(date, time);
+  } else {
+    rows = db.prepare(`SELECT * FROM bookings WHERE booking_date = ? AND slip_path IS NOT NULL ORDER BY time_slot, created_at ASC`).all(date);
+  }
+  const zip = new AdmZip();
+  let added = 0;
+  for (const b of rows) {
+    const p = path.join(SLIPS_DIR, b.slip_path);
+    if (!p.startsWith(SLIPS_DIR + path.sep) || !fs.existsSync(p)) continue;
+    const ext = path.extname(b.slip_path) || '.jpg';
+    const safeName = `${b.time_slot.replace(':', '')}_${(b.code || b.id)}_${String(b.name).replace(/[^฀-๿a-zA-Z0-9]/g, '_').slice(0, 30)}${ext}`;
+    zip.addLocalFile(p, '', safeName);
+    added++;
+  }
+  // Include the name list CSV inside the ZIP for convenience
+  zip.addFile('_รายชื่อ.csv', Buffer.from('﻿' + bookingsCsv(rows), 'utf8'));
+  const fname = time ? `slips-${date}-${time.replace(':', '')}.zip` : `slips-${date}-allday.zip`;
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+  res.send(zip.toBuffer());
 });
 
 // Save OCR'd slip metadata (ref + transfer time) and report any other
@@ -1163,10 +1314,10 @@ app.post('/api/admin/bookings/:id/transfer', requireAdmin, (req, res) => {
       FROM bookings
       WHERE booking_date = ? AND time_slot = ? AND payment_status NOT IN ('rejected', 'cancelled') AND id != ?
     `).get(newDate, newTime, id);
-    if (destUsage.total + booking.num_people > SLOT_CAPACITY) {
+    if (destUsage.total + booking.num_people > getSlotCapacity(newDate)) {
       const err = new Error('full');
       err.code = 'FULL';
-      err.remaining = SLOT_CAPACITY - destUsage.total;
+      err.remaining = getSlotCapacity(newDate) - destUsage.total;
       throw err;
     }
     // Capture original on the first transfer only — subsequent moves keep the

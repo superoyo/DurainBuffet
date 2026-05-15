@@ -378,6 +378,79 @@
     border: 2px solid #FCA5A5;
     background: linear-gradient(135deg, #FFF7F7 0%, #FEF2F2 100%);
   }
+  .home-progress-wrap {
+    background: #fff; border: 1px solid var(--border-soft);
+    border-radius: 16px; padding: 18px 22px; margin-bottom: 18px;
+    box-shadow: 0 6px 18px rgba(255,158,145,0.08);
+  }
+  .home-progress-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px; flex-wrap: wrap; gap: 6px;
+  }
+  .home-progress-title { font-weight: 800; font-size: 15px; color: var(--text); }
+  .home-progress-nums { font-size: 13px; color: var(--muted); }
+  .home-progress-nums b { color: var(--brand-red, #FF7A6D); font-size: 17px; }
+  .home-progress-track {
+    height: 22px; background: #F3F4F6; border-radius: 11px; overflow: hidden;
+    position: relative;
+  }
+  .home-progress-fill {
+    height: 100%; border-radius: 11px;
+    background: linear-gradient(90deg, #FF9E91 0%, #FF7A6D 100%);
+    transition: width 0.5s ease;
+  }
+  .home-progress-pct {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 800;
+    color: var(--text);
+  }
+  .day-capacity-control {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: #FFF7ED; border: 1px solid #FED7AA;
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
+  }
+  .day-capacity-control .dc-label { font-weight: 700; color: #9A3412; font-size: 13px; }
+  .day-capacity-control .dc-value { font-size: 22px; font-weight: 900; color: #B91C1C; }
+  .day-capacity-control .dc-stepper { display: flex; align-items: center; gap: 8px; }
+  .day-capacity-control .dc-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid #FCA5A5;
+    background: #fff; font-size: 18px; font-weight: 800; cursor: pointer;
+    color: #B91C1C; line-height: 1;
+  }
+  .day-capacity-control .dc-btn:hover { background: #FEF2F2; }
+  .day-capacity-control input.dc-input {
+    width: 80px; text-align: center; font-size: 16px; font-weight: 700;
+    padding: 6px; border: 1px solid #FCA5A5; border-radius: 8px;
+  }
+  .day-capacity-control .dc-hint { font-size: 11px; color: var(--muted); }
+  .report-list { display: grid; gap: 12px; }
+  .report-day {
+    background: #fff; border: 1px solid var(--border-soft);
+    border-radius: 14px; overflow: hidden;
+  }
+  .report-day-head {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; padding: 14px 18px; background: var(--brand-cream);
+    cursor: pointer; flex-wrap: wrap;
+  }
+  .report-day-title { font-weight: 800; font-size: 15px; color: var(--text); }
+  .report-day-sub { font-size: 12px; color: var(--muted); }
+  .report-day-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .report-day-actions .btn { padding: 7px 12px; font-size: 12px; }
+  .report-slots { padding: 6px 18px 14px; display: none; }
+  .report-day.open .report-slots { display: block; }
+  .report-slot-row {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--border-soft);
+    flex-wrap: wrap;
+  }
+  .report-slot-row:last-child { border-bottom: none; }
+  .report-slot-info { font-size: 13px; }
+  .report-slot-info b { font-weight: 700; }
+  .report-slot-meta { font-size: 11px; color: var(--muted); }
+  .report-slot-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .report-slot-actions .btn { padding: 5px 10px; font-size: 11px; }
+  .report-slot-row.empty { opacity: 0.5; }
   .page-section-divider {
     margin-top: 28px; margin-bottom: 6px;
     padding-top: 20px; border-top: 2px solid var(--border-soft);
@@ -1010,6 +1083,7 @@
       </div>
       <div class="topbar-nav">
         <button class="nav-link active" data-view="home">หน้าหลัก</button>
+        <button class="nav-link" data-view="report">รายงานรายชื่อ</button>
         <button class="nav-link" data-view="site">ตั้งค่าเว็บไซต์</button>
         <button class="nav-link" data-view="payment">ตั้งค่าการชำระเงิน</button>
         <button class="nav-link" data-view="banner">Banner Upload</button>
@@ -1022,6 +1096,8 @@
       <div id="view-home">
         <div class="page-title">ภาพรวมการจอง</div>
         <div class="page-sub">เทศกาลทุเรียน 15-24 พฤษภาคม 2569 · 199 บาท/รอบ · กดเลือกวันเพื่อดูรายละเอียด</div>
+
+        <div id="home-progress-wrap" class="home-progress-wrap"></div>
 
         <div class="search-bar">
           <span class="search-icon">🔍</span>
@@ -1040,6 +1116,8 @@
         <a class="back-link" id="back-to-home">← กลับภาพรวม</a>
         <div class="page-title" id="dashboard-title">รายละเอียดวัน</div>
         <div class="page-sub" id="dashboard-sub">10 รอบ · กดเลือกรอบเพื่อดูรายชื่อ</div>
+
+        <div class="day-capacity-control" id="day-capacity-control"></div>
 
         <div class="day-stats-banner" id="day-stats-banner"></div>
 
@@ -1319,6 +1397,15 @@
           </div>
         </div>
       </div>
+
+      <!-- ─── Report view: download name lists + slips ────── -->
+      <div id="view-report" style="display:none;">
+        <div class="page-title">รายงานรายชื่อ</div>
+        <div class="page-sub">ดาวน์โหลดรายชื่อ (CSV) และสลิป (ZIP) แยกตามรอบ หรือทั้งวัน</div>
+        <div id="report-list" class="report-list">
+          <div style="color:var(--muted); font-size:13px; padding:12px;">กำลังโหลด...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1468,12 +1555,14 @@ function switchTopView(name) {
   $('view-banner').style.display    = name === 'banner'    ? 'block' : 'none';
   $('view-payment').style.display   = name === 'payment'   ? 'block' : 'none';
   $('view-site').style.display      = name === 'site'      ? 'block' : 'none';
+  $('view-report').style.display    = name === 'report'    ? 'block' : 'none';
   document.querySelectorAll('.nav-link').forEach(b => {
     const v = b.dataset.view;
     if (v === 'home')    b.classList.toggle('active', name === 'home' || name === 'dashboard');
     if (v === 'banner')  b.classList.toggle('active', name === 'banner');
     if (v === 'payment') b.classList.toggle('active', name === 'payment');
     if (v === 'site')    b.classList.toggle('active', name === 'site');
+    if (v === 'report')  b.classList.toggle('active', name === 'report');
   });
 }
 document.querySelectorAll('.nav-link').forEach(btn => {
@@ -1487,6 +1576,7 @@ document.querySelectorAll('.nav-link').forEach(btn => {
     }
     if (target === 'banner')  loadBannerStatus();
     if (target === 'payment') loadPaymentSettings();
+    if (target === 'report')  loadReportView();
     if (target === 'site') {
       loadSiteSettings();
       loadAdminAccount();
@@ -1500,12 +1590,11 @@ document.querySelectorAll('.nav-link').forEach(btn => {
 function renderHomeDays() {
   const root = $('home-days');
   root.innerHTML = '';
-  const cap = state.overview.capacity;
   const slotCount = state.overview.slots.length;
-  const dayCap = cap * slotCount;
   for (const date of state.overview.dates) {
     const d = new Date(date + 'T00:00:00');
     const agg = dayAggregate(date);
+    const dayCap = dayCapacity(date) * slotCount;
     const pct = dayCap ? Math.min(100, (agg.total / dayCap) * 100) : 0;
     const card = document.createElement('div');
     card.className = 'home-day-card' + (agg.total === 0 ? ' empty' : '');
@@ -1552,6 +1641,144 @@ function renderHomeDays() {
     card.onclick = () => drillIntoDay(date);
     root.appendChild(card);
   }
+  renderHomeProgress();
+}
+
+// Horizontal progress bar: tickets sold (verified) vs total tickets in system
+function renderHomeProgress() {
+  const wrap = $('home-progress-wrap');
+  if (!wrap || !state.overview) return;
+  const { dates, slots, matrix } = state.overview;
+  let totalTickets = 0, soldTickets = 0;
+  for (const date of dates) {
+    totalTickets += dayCapacity(date) * slots.length;
+    for (const t of slots) {
+      soldTickets += matrix[date][t].verified_people || 0;
+    }
+  }
+  const pct = totalTickets ? Math.min(100, (soldTickets / totalTickets) * 100) : 0;
+  wrap.innerHTML = `
+    <div class="home-progress-head">
+      <div class="home-progress-title">ตั๋วที่ขายได้ (ออกตั๋วแล้ว)</div>
+      <div class="home-progress-nums"><b>${soldTickets.toLocaleString('th-TH')}</b> / ${totalTickets.toLocaleString('th-TH')} ที่นั่ง</div>
+    </div>
+    <div class="home-progress-track">
+      <div class="home-progress-fill" style="width:${pct}%"></div>
+      <div class="home-progress-pct">${pct.toFixed(1)}%</div>
+    </div>
+  `;
+}
+
+// Per-day capacity editor shown on the dashboard (drilldown) header
+function renderDayCapacityControl(date) {
+  const box = $('day-capacity-control');
+  if (!box) return;
+  const cap = dayCapacity(date);
+  // Floor = busiest slot's booked headcount that day (can't reduce below it)
+  let floor = 0;
+  const m = state.overview.matrix[date];
+  for (const t of state.overview.slots) {
+    if (m[t].total_people > floor) floor = m[t].total_people;
+  }
+  box.innerHTML = `
+    <span class="dc-label">จำนวนคนต่อรอบ (วันนี้):</span>
+    <div class="dc-stepper">
+      <button type="button" class="dc-btn" id="dc-minus">−</button>
+      <input type="number" class="dc-input" id="dc-input" value="${cap}" min="${Math.max(1, floor)}" />
+      <button type="button" class="dc-btn" id="dc-plus">+</button>
+    </div>
+    <button class="btn btn-accent" id="dc-save" style="padding:8px 16px;">บันทึก</button>
+    <span class="dc-hint">รอบที่จองเยอะสุดวันนี้: ${floor} คน · ลดได้ต่ำสุด ${Math.max(1, floor)}</span>
+  `;
+  const input = $('dc-input');
+  $('dc-minus').onclick = () => { input.value = Math.max(Math.max(1, floor), (Number(input.value) || 0) - 10); };
+  $('dc-plus').onclick  = () => { input.value = (Number(input.value) || 0) + 10; };
+  $('dc-save').onclick = async () => {
+    const next = Number(input.value);
+    if (!Number.isInteger(next) || next < 1) { alert('กรุณากรอกจำนวนเต็มบวก'); return; }
+    if (next === cap) { alert('จำนวนเท่าเดิม ไม่มีการเปลี่ยนแปลง'); return; }
+    if (next < floor) { alert(`ลดไม่ได้ — รอบที่จองเยอะสุดวันนี้มี ${floor} คนแล้ว`); return; }
+    const verb = next > cap ? 'เพิ่ม' : 'ลด';
+    if (!confirm(`ยืนยัน${verb}จำนวนคนต่อรอบของ ${fmtDateLong(date)}\n\nจาก ${cap} → ${next} คน/รอบ\nมีผลกับทุกรอบของวันนี้ และหน้าจองของลูกค้าทันที`)) return;
+    const btn = $('dc-save');
+    btn.disabled = true; btn.textContent = '⏳';
+    try {
+      const r = await fetchJson('POST', '/api/admin/day-capacity', { date, capacity: next });
+      if (r.ok) {
+        await loadOverview();
+        renderDayCapacityControl(date);
+        renderDayStatsBanner(date);
+        renderTimes();
+        alert(`✓ บันทึกแล้ว — ${fmtDateLong(date)} = ${next} คน/รอบ`);
+      } else {
+        alert(r.message || 'บันทึกไม่สำเร็จ');
+      }
+    } catch { alert('เกิดข้อผิดพลาด'); }
+    finally { btn.disabled = false; btn.textContent = 'บันทึก'; }
+  };
+}
+
+// ─── Report view: download names (CSV) + slips (ZIP) ───────
+async function loadReportView() {
+  const root = $('report-list');
+  if (!state.overview) { root.innerHTML = '<div style="padding:12px;color:var(--muted);">ยังไม่มีข้อมูล</div>'; return; }
+  const { dates, slots, matrix } = state.overview;
+  root.innerHTML = dates.map(date => {
+    const agg = dayAggregate(date);
+    const slotRows = slots.map(t => {
+      const m = matrix[date][t];
+      const has = m.total_people > 0;
+      return `
+        <div class="report-slot-row${has ? '' : ' empty'}">
+          <div class="report-slot-info">
+            <b>${fmtSlot(t)}</b>
+            <span class="report-slot-meta"> · ${m.total_people} คน · ${m.bookings_count} ใบ · สลิป ${m.verified_people + m.pending_review_people}</span>
+          </div>
+          <div class="report-slot-actions">
+            <button class="btn btn-info" data-rep-names="${date}|${t}">⬇️ รายชื่อ CSV</button>
+            <button class="btn btn-info" data-rep-slips="${date}|${t}">⬇️ สลิป ZIP</button>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div class="report-day" data-date="${date}">
+        <div class="report-day-head" data-toggle="${date}">
+          <div>
+            <div class="report-day-title">${fmtDateTitle(date)}</div>
+            <div class="report-day-sub">${agg.totalPeople} คน · ${agg.totalBookings} ใบ · กดเพื่อดูรายรอบ</div>
+          </div>
+          <div class="report-day-actions">
+            <button class="btn btn-accent" data-rep-names="${date}">⬇️ รายชื่อทั้งวัน CSV</button>
+            <button class="btn btn-accent" data-rep-slips="${date}">⬇️ สลิปทั้งวัน ZIP</button>
+          </div>
+        </div>
+        <div class="report-slots">${slotRows}</div>
+      </div>`;
+  }).join('');
+
+  root.querySelectorAll('[data-toggle]').forEach(h => {
+    h.onclick = (e) => {
+      if (e.target.closest('button')) return; // don't toggle when clicking a download btn
+      h.closest('.report-day').classList.toggle('open');
+    };
+  });
+  root.querySelectorAll('[data-rep-names]').forEach(b => {
+    b.onclick = (e) => { e.stopPropagation(); reportDownload('names', b.dataset.repNames); };
+  });
+  root.querySelectorAll('[data-rep-slips]').forEach(b => {
+    b.onclick = (e) => { e.stopPropagation(); reportDownload('slips', b.dataset.repSlips); };
+  });
+}
+
+async function reportDownload(kind, key) {
+  const [date, time] = key.split('|');
+  let url = `/api/admin/report/${kind}?date=${encodeURIComponent(date)}`;
+  if (time) url += `&time=${encodeURIComponent(time)}`;
+  const ext = kind === 'names' ? 'csv' : 'zip';
+  const fname = time
+    ? `${kind}-${date}-${time.replace(':', '')}.${ext}`
+    : `${kind}-${date}-allday.${ext}`;
+  await downloadAuthed(url, fname);
 }
 
 // ─── Home search (by name or phone) ───────────────────────
@@ -1624,6 +1851,7 @@ function drillIntoDay(date) {
   state.selectedTime = null;
   $('dashboard-title').textContent = fmtDateTitle(date);
   $('dashboard-sub').textContent = `${state.overview.slots.length} รอบ · กดเลือกรอบเพื่อดูรายชื่อ`;
+  renderDayCapacityControl(date);
   renderDayStatsBanner(date);
   switchTopView('dashboard');
   renderTimes();
@@ -2345,6 +2573,14 @@ async function loadOverview() {
   state.overview = data;
 }
 
+// Per-day slot capacity (server sends it on every matrix cell)
+function dayCapacity(date) {
+  const m = state.overview && state.overview.matrix && state.overview.matrix[date];
+  if (!m) return state.overview ? state.overview.capacity : 100;
+  const firstSlot = state.overview.slots[0];
+  return (m[firstSlot] && m[firstSlot].capacity) || state.overview.capacity;
+}
+
 function dayAggregate(date) {
   const { slots, matrix } = state.overview;
   let totalPeople = 0, paidPeople = 0, unpaidPeople = 0;
@@ -2384,10 +2620,11 @@ function renderTimes() {
   root.innerHTML = '';
   for (const time of slots) {
     const m = matrix[date][time];
-    const pct = Math.min(100, (m.total_people / capacity) * 100);
+    const slotCap = m.capacity || capacity;
+    const pct = Math.min(100, (m.total_people / slotCap) * 100);
     let cls = 'time-item';
     if (m.total_people === 0) cls += ' empty';
-    else if (m.total_people >= capacity) cls += ' full';
+    else if (m.total_people >= slotCap) cls += ' full';
     if (time === state.selectedTime) cls += ' active';
     const pendingPill = m.pending_review_count > 0
       ? `<div class="time-item-pending">${m.pending_review_count}</div>` : '';
@@ -2418,10 +2655,10 @@ function renderTimes() {
         </div>
       </div>
     ` : '';
-    const isFull = m.total_people >= capacity;
+    const isFull = m.total_people >= slotCap;
     const countDisplay = isFull
       ? `<div class="time-item-full-badge">เต็ม</div>`
-      : `<div class="time-item-count">${m.total_people}/${capacity}</div>`;
+      : `<div class="time-item-count">${m.total_people}/${slotCap}</div>`;
     item.innerHTML = `
       ${pendingPill}
       <div class="time-item-row">
@@ -2871,10 +3108,10 @@ function renderTransferTimes() {
   const booking = state.transferBooking;
   const date = state.transferDate;
   const matrix = state.overview.matrix[date];
-  const cap = state.overview.capacity;
 
   for (const time of state.overview.slots) {
     const m = matrix[time];
+    const cap = m.capacity || state.overview.capacity;
     const isCurrentSource = (date === booking.booking_date && time === booking.time_slot);
     // For destination capacity, exclude this booking if it's currently in this slot
     const usedAtDest = m.total_people - (isCurrentSource ? booking.num_people : 0);
